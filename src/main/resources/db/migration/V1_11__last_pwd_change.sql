@@ -1,0 +1,1 @@
+ALTER TABLE substitute ADD COLUMN last_pwd_change TIMESTAMP NULL;

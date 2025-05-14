@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header" />
+<body class="top-navigation">
+	<div id="wrapper">
+	    <div id="page-wrapper" class="gray-bg">
+			<div th:replace="fragments/topbar :: topbar(page = 'log')" />
+
+	        <div class="wrapper wrapper-content">
+	            <div class="row">
+	                <div class="col-lg-12">
+                        <div class="ibox">
+                            <div class="ibox-title">
+                                <h2><em class="fa fa-archive"></em> &nbsp; Log</h2>
+                            </div>
+		
+                            <div class="ibox-content">
+								<form class="form-horizontal">
+									<fieldset>
+										<div class="form-group row">
+											<label class="col-sm-2 control-label">Tidspunkt</label>
+											<div class="col-sm-10">
+												<input class="form-control" th:value="${#strings.replace(log.timestamp,'T',' ')}" disabled="disabled"/>
+											</div>
+										</div>
+									</fieldset>
+									<fieldset>
+										<div class="form-group row">
+											<label class="col-sm-2 control-label">Administrator</label>
+											<div class="col-sm-10">
+												<input class="form-control" th:value="${log.administrator}" disabled="disabled"/>
+											</div>
+										</div>
+									</fieldset>
+									<fieldset>
+										<div class="form-group row">
+											<label class="col-sm-2 control-label">Vikar</label>
+											<div class="col-sm-10">
+												<input class="form-control" th:value="${log.substitute}" disabled="disabled"/>
+											</div>
+										</div>
+									</fieldset>
+									<fieldset>
+										<div class="form-group row">
+											<label class="col-sm-2 control-label">Hændelse</label>
+											<div class="col-sm-10">
+												<input class="form-control" th:value="${log.operation}" disabled="disabled"/>
+											</div>
+										</div>
+									</fieldset>
+									<fieldset>
+										<div class="form-group row">
+											<label class="col-sm-2 control-label">Detaljer</label>
+											<div class="col-sm-10">
+												<textarea class="form-control" th:text="${log.details}" rows="8" disabled="disabled"/>
+											</div>
+										</div>
+									</fieldset>
+								</form>
+	                        </div>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+
+	    </div>
+	</div>
+	
+	<div th:replace="fragments/footer :: scripts" />
+	
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+		+]*/
+		
+		var token = $("meta[name='_csrf']").attr("content");
+		$(document).ready(function() {
+
+		});
+		
+
+		/*]]>*/
+	</script>
+</body>
+</html>

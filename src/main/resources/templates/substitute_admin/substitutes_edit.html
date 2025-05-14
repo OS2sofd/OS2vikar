@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header(datatables = true, select2 = true, jstree = true, datepicker = true, checkbox = true)" />
+<body class="top-navigation">
+	<div id="wrapper">
+	    <div id="page-wrapper" class="gray-bg">
+			<div th:replace="fragments/topbar :: topbar(page = 'substitutes')"></div>
+
+	        <div class="wrapper wrapper-content">
+	            <div class="row">
+	                <div class="col-lg-12">
+                        <div class="ibox">
+                            <div class="ibox-title">
+                                <h2><em class="fa fa-user"></em> &nbsp; Rediger vikar</h2>
+								<span class="pull-right">
+									<th:block th:if="${substituteForm.username != null and @OS2VikarConfiguration.isResetNexusUserAllowed()}">
+										<button class="btn btn-primary" onclick="substituteService.resetNexus();">Opfrisk i Nexus</button>
+									</th:block>
+
+									<th:block th:if="${substituteForm.username != null and @OS2VikarConfiguration.isUnlockAccountAllowed()}">
+										<button class="btn btn-primary" onclick="substituteService.unlock();">Lås AD konto op</button>
+									</th:block>
+
+									<th:block th:if="${substituteForm.username != null and @OS2VikarConfiguration.isPasswordChangeAllowed()}">
+										<span class="d-none d-md-inline" style="margin-right: 20px;" th:if="${substituteForm.lastPwdChange != null}" th:text="'(kodeord sidst skiftet ' + ${substituteForm.lastPwdChange} + ')'"></span>
+										<button class="btn btn-primary" onclick="substituteService.resetPassword();">Nulstil kodeord</button>
+									</th:block>
+									
+									<th:block sec:authorize="hasRole('ROLE_SYSTEM_ADMIN')" th:if="${substituteForm.username != null and @OS2VikarConfiguration.isPasswordChangeAdminOnlyAllowed()}">
+										<span class="d-none d-md-inline" style="margin-right: 20px;" th:if="${substituteForm.lastPwdChange != null}" th:text="'(kodeord sidst skiftet ' + ${substituteForm.lastPwdChange} + ')'"></span>
+										<button class="btn btn-primary" onclick="substituteService.resetPassword();">Nulstil kodeord</button>
+									</th:block>
+
+									<th:block sec:authorize="hasRole('ROLE_SYSTEM_ADMIN')" th:if="${substituteForm.username != null and @OS2VikarConfiguration.isDeleteAccountAllowed()}">
+										<button class="btn btn-danger" onclick="substituteService.delete();">Slet vikar</button>
+									</th:block>
+								</span>
+                            </div>
+		
+                            <div class="ibox-content">
+                            	<div th:replace="substitute_admin/fragments/substitute_form :: substituteForm(edit = true)"></div>
+								<button class="btn btn-primary full-width" style="margin-bottom: 10px" onclick="substituteService.save();">Gem</button>
+	                        	<br/><hr/><br/>
+	                        	<h3>Arbejdssteder</h3>
+	                        	<button class="btn btn-primary" onclick="substituteService.openCreateModal();">Opret nyt arbejdssted</button>
+	                        	<br/><br/>
+	                        	<div id="workplaceTablePlaceholder"></div>
+	                        </div>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+
+	    </div>
+	</div>
+	
+	<div class="modal fade" id="modalAddWorkplace" role="dialog">
+		<div class="modal-dialog modal-lg modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header">
+			        <h2 style="font-weight: bold">Opret Arbejdssted</h2>
+			        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+			          <em aria-hidden="true" class="fa fa-times"></em>
+			        </button>
+			    </div>
+				<div class="modal-body">
+					<div th:replace="substitute_admin/fragments/workplace_form :: workplaceForm"></div>
+				</div>
+				<div class="modal-footer">
+					<button class="btn btn-primary" id="createWorkplaceButton" onclick="substituteService.saveWorkplace()">Opret</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Reset Password modal -->
+	<div class="modal fade" id="modalResetPassword" role="dialog">
+		<div class="modal-dialog modal-lg modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h2 style="font-weight: bold">Nulstil kodeord</h2>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<em aria-hidden="true" class="fa fa-times"></em>
+					</button>
+				</div>
+				<div class="modal-body">
+					<h3 style="text-align: center;" id="resetPwdAreYouSureText">Er du sikker på at du vil nulstille vikarens kodeord?</h3>
+					<input id="rpNewPassword" class="form-control" style="text-align: center; margin-left: auto;margin-right:auto; width:auto;" readonly="readonly" onClick="this.setSelectionRange(0, this.value.length)"/>
+				</div>
+				<div class="modal-footer">
+					<div style="width: auto; margin-left:auto; margin-right:auto;">
+						<button id="rpResetBtn" type="button" class="btn btn-danger" onclick="substituteService.getNewPassword();">Nulstil kodeord</button>
+						<button id="rpCloseBtn" type="button" class="btn btn-primary" style="display:none;" data-dismiss="modal" aria-label="Close">Luk</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="modalResetPasswordNotAllowed" role="dialog">
+		<div class="modal-dialog modal-lg modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h2 style="font-weight: bold">Nulstil kodeord</h2>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<em aria-hidden="true" class="fa fa-times"></em>
+					</button>
+				</div>
+				<div class="modal-body">
+					<div th:utext="${@cmsMessageBundle.getText('cms.passwordChangeGuide.text')}"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<div id="editWorkplaceModalPlaceholder"></div>
+
+	<div th:replace="substitute_admin/fragments/substitutes_choose_org_unit :: substitutesChooseOrgUnit"></div>
+	
+	<div th:replace="fragments/footer :: scripts(datatables = true, select2 = true, jstree = true, datepicker = true, checkbox = true)"></div>
+	<div th:replace="substitute_admin/fragments/substitutes_choose_org_unit :: substitutesChooseOrgUnitScript"></div>
+	<div th:replace="substitute_admin/fragments/substitute_form :: substituteFormScript"></div>
+	<div th:replace="substitute_admin/fragments/workplace_form :: workplaceFormScript"></div>
+	<div th:replace="substitute_admin/fragments/workplace_table :: workplaceTableScript"></div>
+	<div th:replace="substitute_admin/fragments/substitutes_edit_workplace :: substituteEditWorkplaceScript"></div>
+	
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+		    var url = [[@{/substituteadmin}]];
+            var orgUnits = [[${orgUnits}]];
+            var restUrl = [[@{/rest/substituteadmin}]];
+            var allowPasswordChange = [[${@OS2VikarConfiguration.isPasswordChangeAllowed()}]];
+            var substituteId = [[${substituteForm.id}]];
+		+]*/
+		
+		var token = $("meta[name='_csrf']").attr("content");
+		var substituteService;
+		var chosenOUUuids = [];
+		var chosenOUNames = [];
+		var newWorkplace = null;
+		$(document).ready(function() {
+			substituteService = new SubstituteService();
+			substituteService.init();
+		});
+		
+		function SubstituteService() {
+			this.init = function() {
+				substituteService.loadWorkplaceTable();
+			}
+			
+			this.save = function() {
+				var cpr = $("#cpr").val();
+				cpr = cpr.replaceAll(/[^A-Za-z0-9]/g, '');
+
+				if (cpr.length != 10) {
+					toastr.warning("Ugyldigt cpr");
+					return;
+				}
+
+				$.ajax({
+					url : restUrl + "/substitutes/edit/save",
+					type : 'post',
+					contentType: 'application/json',
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					data : JSON.stringify({
+						id: $("#id").val(),
+						cpr: cpr,
+						name: $("#name").val(),
+						surname: $("#surname").val(),
+						email: $("#email").val(),
+						phone: $("#phone").val(),
+						agency: $("#agency").val(),
+						assignEmployeeSignature: $("#assignEmployeeSignature").prop("checked"),
+						authorizationCode: $("#authorizationCode").val()
+					}),
+					success : function(response) {
+						toastr.success("Gemt");
+						$("#authorizationCode").prop("disabled", true);
+						// Change dropdown text to value
+						$("#authorizationCode option").each((i,e) => $(e).text($(e).val()));
+					},
+					error: function(jqXHR, textStatus, error) {
+						switch (jqXHR.status) {
+							case 400:
+								toastr.warning(jqXHR.responseText);
+								break;
+							default:
+								toastr.warning('Teknisk fejl: ' + jqXHR.responseText);
+								break;
+						}
+					}
+				});
+			}
+			
+			this.saveWorkplace = function() {
+				var title = $('#titles :selected').val();
+				if (title == '0') {
+					toastr.warning("Der skal vælges en arbejdstitel");
+					return;
+				}
+				
+				var roles = [];
+				$('#roles :selected').each(function(index) { 
+					var role = {id: $(this).val(), global: $(this).data("global")};
+					roles.push(role);
+				});
+
+				$('#createWorkplaceButton').attr('disabled', true);
+
+				var payload = {
+						id: $("#id").val(),
+						orgUnitUuids: $("#orgUnitUuids").val(),
+						title: title,
+						start: $("#start").val(),
+						stop: $("#stop").val(),
+						roles: roles,
+						requireO365License: $("#requireO365License").prop("checked"),
+						changeStrategy: $("#changeStrategySelect").val()
+					};
+				
+				$.ajax({
+					url : restUrl + "/substitutes/edit/addworkplace",
+					type : 'post',
+					contentType: 'application/json',
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					data : JSON.stringify(payload),
+					success : function(data, success, jQxhr) {
+						$("#modalAddWorkplace").modal('hide');
+
+						if (jQxhr.responseText != null && jQxhr.responseText != "") {
+							toastr.success(jQxhr.responseText);
+						}
+
+						substituteService.loadWorkplaceTable();
+						$('#createWorkplaceButton').attr('disabled', false);
+					},
+					error: function(jqXHR, textStatus, error) {
+						switch (jqXHR.status) {
+							case 400:
+								if (jqXHR.responseText.includes("vikarkontoen er lukket")) {
+									substituteService.handleAccountClosed(jqXHR.responseText);
+									newWorkplace = payload;
+								} else {
+									toastr.warning(jqXHR.responseText);
+								}
+								break;
+							default:
+								toastr.warning('Teknisk fejl: ' + jqXHR.responseText);
+								break;
+						}
+						
+						$('#createWorkplaceButton').attr('disabled', false);
+					}
+				});
+			}
+
+			this.handleAccountClosed = function(message) {
+				swal({
+                    html: true,
+                    title : 'Kontoen er lukket i AD',
+                    text : message + '\nDenne vikar vil blive slettet. Vil du oprette en ny vikarkonto med det nye arbejdssted?',
+                    type : "warning",
+                    showCancelButton : true,
+                    confirmButtonColor : "#18a689",
+                    confirmButtonText : 'Ja',
+                    cancelButtonText : 'Nej',
+                    closeOnConfirm : false,
+                    closeOnCancel : false
+	            },
+            	function (isConfirm) {
+                    if (isConfirm) {
+						$.ajax({
+			    			   url: baseUrl + "rest/substituteadmin/substitutes/copy",
+			    			   type : 'post',
+							   contentType: 'application/json',
+							   headers: {
+									'X-CSRF-TOKEN': token
+								},
+							   data : JSON.stringify(newWorkplace),
+			    			   success: function(data, textStatus, jQxhr) {
+			    			   	   window.location = "/substituteadmin/substitutes/" + data + "/edit";
+			    			   },
+			    			   error: function(jQxhr, textStatus, errorThrown) {
+			    					switch (jQxhr.status) {
+										case 400:
+											toastr.warning(jQxhr.responseText);
+											break;
+										default:
+											toastr.warning('Teknisk fejl: ' + jQxhr.responseText);
+											break;
+									}
+			    			   }
+			    		});
+                    } else {
+                    	$.ajax({
+			    			   url: baseUrl + "rest/substituteadmin/substitutes/" + $("#id").val() + "/delete",
+			    			   headers: {
+			    			      'X-CSRF-TOKEN': token
+			    			   },
+			    			   type: 'post',
+
+			    			   success: function(data, textStatus, jQxhr) {
+			    				   window.location = "/substituteadmin/substitutes";
+			    			   },
+			    			   error: function(jQxhr, textStatus, errorThrown) {
+			    					toastr.error("Fejl! Kunne ikke slette vikaren.");
+			    			   }
+			    		});
+                    }
+	            });
+			}
+			
+			this.loadWorkplaceTable = function() {
+				$( "#workplaceTablePlaceholder" ).load( url + "/substitutes/" + $("#id").val() + "/fragments/workplaces", function() {
+					workplaceTableService.init();
+				});
+			}
+			
+			this.openCreateModal = function() {
+				$("#modalAddWorkplace").modal('show');
+				$(".workplace").val("");
+				$(".workplace").prop("disabled", true);
+				$(".resources").prop('hidden', true);
+				$("#changeStrategy").prop('hidden', true);
+				$("#requireO365License").iCheck('uncheck');
+			}
+			
+			this.loadWorkplaceEditModal = function(id) {
+				$( "#editWorkplaceModalPlaceholder" ).load( url + "/substitutes/" + $("#id").val() + "/fragments/workplaces/" + id + "/edit", function() {
+					$("#modalEditWorkplace").modal('show');
+					workplaceEditService.init();
+				});
+			}
+			
+			this.resetPassword = function() {
+				if (allowPasswordChange) {
+					$("#modalResetPassword").modal('show');
+					$("#rpNewPassword").val("");
+					$("#rpResetBtn").show();
+					$("#rpCloseBtn").hide();
+				} else {
+					$("#modalResetPasswordNotAllowed").modal('show');
+				}
+			}
+
+			this.delete = function() {
+				swal({
+                    html: true,
+                    title : 'Slet vikar',
+                    text : 'Er du sikker på at du vil slette denne vikar? AD-kontoen vil blive slettet, hvis det er muligt. Vikaren vil også blive slettet helt fra OS2vikar.',
+                    type : "warning",
+                    showCancelButton : true,
+                    confirmButtonColor : "#DD6B55",
+                    confirmButtonText : 'Ja',
+                    cancelButtonText : 'Nej',
+                    closeOnConfirm : true,
+                    closeOnCancel : true
+	            },
+            	function (isConfirm) {
+                    if (isConfirm) {
+						$.ajax({
+			    			   url: restUrl + "/substitutes/" + substituteId + "/delete",
+			    			   headers: {
+			    			      'X-CSRF-TOKEN': token
+			    			   },
+			    			   type: 'post',
+
+			    			   success: function(data, textStatus, jQxhr) {
+			    				   window.location = "/substituteadmin/substitutes";
+			    			   },
+			    			   error: function(jQxhr, textStatus, errorThrown) {
+			    					toastr.error("Fejl! Kunne ikke slette vikaren.");
+			    			   }
+			    		});
+                    }
+	            });
+			}
+
+			this.resetNexus = function() {
+				$.ajax({
+					   url: restUrl + "/substitutes/" + substituteId + "/resetNexus",
+					   headers: {
+						  'X-CSRF-TOKEN': token
+					   },
+					   type: 'post',
+
+					   success: function(data, textStatus, jQxhr) {
+						   toastr.success("Kontoen opfrisk i Nexus indenfor 5-10 minutte");
+					   },
+					   error: function(response) {
+					   		if (response.responseText != null) {
+					   			toastr.warning(response.responseText);
+					   		} else {
+					   			toastr.error("Fejl! Kunne ikke opfriske kontoen i Nexus.");
+					   		}
+					   }
+				});
+			}
+			
+			this.unlock = function() {
+				$.ajax({
+					   url: restUrl + "/substitutes/" + substituteId + "/unlock",
+					   headers: {
+						  'X-CSRF-TOKEN': token
+					   },
+					   type: 'post',
+
+					   success: function(data, textStatus, jQxhr) {
+						   toastr.success("Kontoen er låst op");
+					   },
+					   error: function(response) {
+					   		if (response.responseText != null) {
+					   			toastr.warning(response.responseText);
+					   		} else {
+					   			toastr.error("Fejl! Kunne ikke låse konto op.");
+					   		}
+					   }
+				});
+			}
+
+			this.getNewPassword = function() {
+				$.ajax({
+					url : restUrl + "/substitutes/edit/resetPassword/" + $("#id").val(),
+					type : 'get',
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					success : function(response) {
+					    $("#resetPwdAreYouSureText").hide();
+						$("#rpNewPassword").val(response);
+						$("#rpResetBtn").hide();
+						$("#rpCloseBtn").show();
+					},
+					error: function(jqXHR, textStatus, error) {
+						switch (jqXHR.status) {
+							case 400:
+								toastr.warning(jqXHR.responseText);
+								break;
+							default:
+								toastr.warning('Teknisk fejl: ' + jqXHR.responseText);
+								break;
+						}
+					}
+				});
+			}
+		}
+
+		/*]]>*/
+	</script>
+</body>
+</html>

@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header(datatables = true, checkbox = true)" />
+<body class="top-navigation">
+	<div id="wrapper">
+	    <div id="page-wrapper" class="gray-bg">
+			<div th:replace="fragments/topbar :: topbar(page = 'titles')" />
+
+	        <div class="wrapper wrapper-content">
+	            <div class="row">
+	                <div class="col-lg-12">
+                        <div class="ibox">
+                            <div class="ibox-title">
+                                <h2><em class="fa fa-id-badge"></em> &nbsp; Globale arbejdstitler</h2>
+                                
+                                <div class="ibox-tools">
+	                                <button class="btn btn-primary" onclick="titleService.openCreateModal()">Tilføj arbejdstitel</button>
+	                            </div>
+                            </div>
+		
+                            <div class="ibox-content">
+                            	<p th:utext="${@cmsMessageBundle.getText('cms.titles.helptext')}"></p>
+                            	<br/>
+                            	<table class="table" id="titleTable">
+									<thead>
+										<tr>
+											<th>Titel</th>
+											<th class="actionColumn">Handlinger</th>
+										</tr>
+									</thead>
+								
+									<tbody>
+										<tr th:each="title : ${titles}">
+											<td th:text="${title.title}" />
+											<td>
+												<i class="fa fa-pencil editable" aria-hidden="true" title="Rediger arbejdstitel" th:attr="data-title=${title.title},data-id=${title.id},data-guids=${title.objectGuids},data-identifiers=${title.identifiers},data-userroleids=${title.userRoleIds}"></i>&nbsp;
+												<i class="fa fa-times" aria-hidden="true" th:onClick="'titleService.deleteTitle(' + ${title.id} + ')'" title="Slet arbejdstitel"></i>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+	                        </div>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+
+	    </div>
+	</div>
+	
+	<div class="modal fade" id="modalAddTitle" role="dialog">
+		<div class="modal-dialog modal-xl modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header">
+			        <h2 style="font-weight: bold" id="addTitle" hidden>Opret arbejdstitel</h2>
+					<h2 style="font-weight: bold" id="editTitle" hidden>Rediger arbejdstitel</h2>
+			        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+			          <em aria-hidden="true" class="fa fa-times"></em>
+			        </button>
+			    </div>
+			    
+				<div class="modal-body">
+					<input id="editId" hidden>
+					<fieldset>
+						<div class="form-group row">
+							<label class="col-lg-2 control-label">Titel</label>
+							<div class="col-lg-10">
+								<input id="title" class="form-control" />
+							</div>
+						</div>
+					</fieldset>
+					
+					<div class="tabs-container">
+						<ul class="nav nav-tabs" role="tablist">
+							<li><a class="nav-link active" data-toggle="tab" href="#tab-1">IT-systemer</a></li>
+							<li th:if="${@OS2VikarConfiguration.syncADGroups.enabled}"><a class="nav-link" data-toggle="tab" href="#tab-2">AD Grupper</a></li>
+							<li th:if="${@OS2VikarConfiguration.rc.allowAutomaticUserRoles}"><a class="nav-link" data-toggle="tab" href="#tab-3">Rolletildelinger</a></li>
+						</ul>
+          
+						<div class="tab-content">
+							<div role="tabpanel" id="tab-1" class="tab-pane active">
+								<div class="panel-body">
+									<fieldset>
+										<div>
+											<p th:utext="${@cmsMessageBundle.getText('cms.titles.it_systems.helptext')}"></p>
+
+											<table class="table" id="systemTable">
+												<thead>
+													<tr>
+														<th>Tildelt</th>
+														<th>Navn</th>
+													</tr>
+												</thead>
+				
+												<tbody>
+													<tr th:each="system : ${systems}">
+														<td class="actionColumn">
+															<input class="i-checks systems" th:id="'system_' + ${system.identifier}" th:attr="data-identifier=${system.identifier}" type="checkbox">
+														</td>
+														<td th:text="${system.name}"></td>
+													</tr>
+												</tbody>
+											</table>
+										</div>
+									</fieldset>
+								</div>
+						    </div>
+
+							<div th:if="${@OS2VikarConfiguration.syncADGroups.enabled}" role="tabpanel" id="tab-2" class="tab-pane">
+								<div class="panel-body">
+									<fieldset>
+										<div>
+										    <p th:utext="${@cmsMessageBundle.getText('cms.titles.ad_groups.helptext')}"></p>
+
+							                <table class="table" id="groupTable">
+												<thead>
+													<tr>
+														<th>Tildelt</th>
+														<th>Navn</th>
+													</tr>
+												</thead>
+											
+												<tbody>
+													<tr th:each="group : ${adGroups}">
+														<td class="actionColumn">
+															<input class="i-checks adGroups" th:id="'group_' + ${group.objectGuid}" th:attr="data-guid=${group.objectGuid}" type="checkbox">
+														</td>
+														<td th:text="${group.name}"></td>
+													</tr>
+												</tbody>
+											</table>
+										</div>
+									</fieldset>
+								</div>
+							</div>
+							<div th:if="${@OS2VikarConfiguration.rc.allowAutomaticUserRoles}" role="tabpanel" id="tab-3" class="tab-pane">
+								<div class="panel-body">
+									<fieldset>
+										<div>
+										    <p th:utext="${@cmsMessageBundle.getText('cms.titles.userroles.helptext')}"></p>
+
+							                <table class="table" id="userRoleTable">
+												<thead>
+													<tr>
+														<th>Tildelt</th>
+														<th>Navn</th>
+														<th>Beskrivelse</th>
+														<th>IT system</th>
+													</tr>
+												</thead>
+
+												<tbody>
+													<tr th:each="userRole : ${userRoles}">
+														<td class="actionColumn">
+															<input class="i-checks userRoles" th:id="'userRole_' + ${userRole.id}" th:attr="data-id=${userRole.id}" type="checkbox">
+														</td>
+														<td th:text="${userRole.name}"></td>
+														<td th:text="${userRole.description}" />
+														<td th:text="${userRole.itSystem.name}" />
+													</tr>
+												</tbody>
+											</table>
+										</div>
+									</fieldset>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<fieldset style="text-align: right; margin-top: 20px;">
+						<button class="btn btn-primary" onclick="titleService.save()">Gem</button>
+					</fieldset>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div th:replace="fragments/footer :: scripts(datatables = true, checkbox = true)"></div>
+	
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+		    var url = [[@{/systemadmin}]];
+			var baseUrl = [[@{/}]];
+		+]*/
+		
+		var token = $("meta[name='_csrf']").attr("content");
+		var titleService, adGroupService, itSystemService, userRoleService;
+		var chosenGuids = [];
+		var chosenIdentifiers = [];
+		var chosenRoleIds = [];
+		$(document).ready(function() {
+			titleService = new TitleService();
+			adGroupService = new ADGroupService();
+			itSystemService = new ITSystemService();
+			userRoleService = new UserRoleService();
+			titleService.init();
+			adGroupService.init();
+			itSystemService.init();
+			userRoleService.init();
+		});
+		
+		function TitleService() {
+			this.init = function() {
+				var table = $('#titleTable').DataTable({
+					"columns": [
+						null,
+					    { "orderable": false,
+						  "searchable": false}
+					  ],
+					"pageLength" : 25,
+					"responsive" : true,
+					"autoWidth" : false,
+					"language" : {
+						"search" : "Søg",
+						"lengthMenu" : "_MENU_ arbejdstitler per side",
+						"info" : "Viser _START_ til _END_ af _TOTAL_ arbejdstitler",
+						"zeroRecords" : "Ingen data...",
+						"infoEmpty" : "Henter data...",
+						"infoFiltered" : "(ud af _MAX_ arbejdstitler)",
+						"paginate" : {
+							"previous" : "Forrige",
+							"next" : "Næste"
+						}
+					}
+				});
+
+				$(".editable").on("click", function() {
+					titleService.openEditModal(this);
+				});
+			}
+
+			this.deleteTitle = function(id) {
+				swal({
+                    html: true,
+                    title : 'Slet global arbejdstitel',
+                    text : 'Er du sikker på at du vil slette denne globale arbejdstitel?',
+                    type : "warning",
+                    showCancelButton : true,
+                    confirmButtonColor : "#DD6B55",
+                    confirmButtonText : 'Ja',
+                    cancelButtonText : 'Nej',
+                    closeOnConfirm : true,
+                    closeOnCancel : true
+	            },
+            	function (isConfirm) {
+                    if (isConfirm) {
+						$.ajax({
+			    			   url: baseUrl + "rest/systemadmin/globaltitles/" + id + "/delete",
+			    			   headers: {
+			    			      'X-CSRF-TOKEN': token
+			    			   },
+			    			   type: 'post',
+			    			   
+			    			   success: function(data, textStatus, jQxhr) {
+			    				   window.location.reload();
+			    			   },
+			    			   error: function(jQxhr, textStatus, errorThrown) {
+			    					toastr.error("Fejl! Kunne ikke slette den globale arbejdstitel.");			    				      
+			    			   }
+			    		});
+                    }
+	            });
+			}
+			
+			this.openCreateModal = function() {
+				$('.adGroups').iCheck('uncheck');
+				chosenGuids = [];
+				$('.systems').iCheck('uncheck');
+				chosenIdentifiers = [];
+				$('.userRoles').iCheck('uncheck');
+				chosenRoleIds = [];
+				$("#editId").val("");
+				$("#title").val("");
+				$("#title").prop("readonly", false);
+				$("#addTitle").prop("hidden", false);
+				$("#editTitle").prop("hidden", true);
+				$("#modalAddTitle").modal("show");
+				$("#title").focus();
+			}
+
+			this.openEditModal = function(elem) {
+				var id = $(elem).data("id");
+				var title = $(elem).data("title");
+
+				var guidsString = $(elem).data("guids");
+				var guids = [];
+				if (guidsString != null) {
+					guids = guidsString.split(",");
+				}
+
+				var identifiersString = $(elem).data("identifiers");
+				var identifiers = [];
+				if (identifiersString != null) {
+					identifiers = (""+identifiersString).split(",");
+				}
+
+				var userRoleIdsString = $(elem).data("userroleids");
+				var userRoleIds = [];
+				if (userRoleIdsString != null) {
+					userRoleIds = (""+userRoleIdsString).split(",");
+				}
+
+				$("#editId").val(id);
+				$("#title").val(title);
+				$("#title").prop("readonly", true);
+				$("#addTitle").prop("hidden", true);
+				$("#editTitle").prop("hidden", false);
+
+				$('.adGroups').iCheck('uncheck');
+				for (const guid of guids) {
+					$("#group_" + guid).iCheck('check');
+				}
+				chosenGuids = guids;
+
+				$('.systems').iCheck('uncheck');
+				for (const identifier of identifiers) {
+					$("#system_" + identifier).iCheck('check');
+				}
+				chosenIdentifiers = identifiers;
+
+				$('.userRoles').iCheck('uncheck');
+				for (const roleId of userRoleIds) {
+					$("#userRole_" + roleId).iCheck('check');
+				}
+				chosenRoleIds = userRoleIds;
+
+				$("#modalAddTitle").modal("show");
+			}
+			
+			this.save = function() {
+				var payload = {
+					id : $("#editId").val(),
+					title : $("#title").val(),
+					adGroupObjectGuids : chosenGuids,
+					systemIdentifiers: chosenIdentifiers,
+					userRoleIds: chosenRoleIds
+				}
+				
+				$.ajax({
+	    			   url: baseUrl + "rest/systemadmin/globaltitles/save",
+	    			   headers: {
+	    			      'X-CSRF-TOKEN': token
+	    			   },
+	    			   type: 'post',
+	    			   contentType: 'application/json',
+	    			   data: JSON.stringify(payload),
+	    			   
+	    			   success: function(data, textStatus, jQxhr) {
+	    				   window.location.reload();
+	    			   },
+	    			   error: function(jQxhr, textStatus, errorThrown) {
+	    					toastr.error("Fejl! Kunne ikke gemme den globale arbejdstitel.");			    				      
+	    			   }
+	    		});
+			}
+		}
+		
+		function ADGroupService() {
+			this.init = function() {
+				var table = $('#groupTable').DataTable({
+					"columns": [
+					    { "orderable": false,
+						  "searchable": false},
+						  null
+					  ],
+					"destroy" : true,
+					"pageLength" : 25,
+					"order": [ 1, 'asc' ],
+					"responsive" : true,
+					"autoWidth" : false,
+					"language" : {
+						"search" : "Søg",
+						"lengthMenu" : "_MENU_ grupper per side",
+						"info" : "Viser _START_ til _END_ af _TOTAL_ grupper",
+						"zeroRecords" : "Ingen data...",
+						"infoEmpty" : "",
+						"infoFiltered" : "(ud af _MAX_ grupper)",
+						"paginate" : {
+							"previous" : "Forrige",
+							"next" : "Næste"
+						}
+					}
+				});
+				
+				$('.adGroups').on('ifChecked', function(event){
+					chosenGuids.push($(this).data("guid"));
+				});
+				
+				$('.adGroups').on('ifUnchecked', function(event){
+					var index = chosenGuids.indexOf($(this).data("guid"));
+					chosenGuids.splice(index, 1);
+				});
+				
+				//assign listeners again on page change
+				$('#groupTable').on('draw.dt', function() {
+					$('.adGroups').off('ifChecked');
+					$('.adGroups').off('ifUnchecked');
+
+					// show selected
+					$(".adGroups").iCheck('uncheck');
+					for (const guid of chosenGuids) {
+						$("#group_" + guid).iCheck('check');
+					}
+
+					$('.adGroups').on('ifChecked', function(event){
+						chosenGuids.push($(this).data("guid"));
+					});
+					
+					$('.adGroups').on('ifUnchecked', function(event){
+						var index = chosenGuids.indexOf($(this).data("guid"));
+						chosenGuids.splice(index, 1);
+					});
+				});
+			}
+		}
+
+		function UserRoleService() {
+			this.init = function() {
+				var table = $('#userRoleTable').DataTable({
+					"columns": [
+					    { "orderable": false,
+						  "searchable": false},
+						  null,
+						  null,
+						  null
+					  ],
+					"destroy" : true,
+					"pageLength" : 25,
+					"order": [ 1, 'asc' ],
+					"responsive" : true,
+					"autoWidth" : false,
+					"language" : {
+						"search" : "Søg",
+						"lengthMenu" : "_MENU_ jobfunktionsroller per side",
+						"info" : "Viser _START_ til _END_ af _TOTAL_ jobfunktionsroller",
+						"zeroRecords" : "Ingen data...",
+						"infoEmpty" : "",
+						"infoFiltered" : "(ud af _MAX_ jobfunktionsroller)",
+						"paginate" : {
+							"previous" : "Forrige",
+							"next" : "Næste"
+						}
+					}
+				});
+
+				$('.userRoles').on('ifChecked', function(event){
+					chosenRoleIds.push($(this).data("id") + "");
+				});
+
+				$('.userRoles').on('ifUnchecked', function(event){
+					var id = $(this).data("id") + "";
+					var index = chosenRoleIds.indexOf(id);
+					chosenRoleIds.splice(index, 1);
+				});
+
+				//assign listeners again on page change
+				$('#userRoleTable').on('draw.dt', function() {
+					$('.userRoles').off('ifChecked');
+					$('.userRoles').off('ifUnchecked');
+
+					// show selected
+					$(".userRoles").iCheck('uncheck');
+					for (const id of chosenRoleIds) {
+						$("#userRole_" + id).iCheck('check');
+					}
+
+					$('.userRoles').on('ifChecked', function(event){
+						chosenRoleIds.push($(this).data("id"));
+					});
+
+					$('.userRoles').on('ifUnchecked', function(event){
+						var index = chosenGuids.indexOf($(this).data("id"));
+						chosenRoleIds.splice(index, 1);
+					});
+				});
+			}
+		}
+
+		function ITSystemService() {
+			this.init = function() {
+				var table = $('#systemTable').DataTable({
+					"columns": [
+					    { "orderable": false,
+						  "searchable": false },
+						  null
+					  ],
+					"destroy" : true,
+					"pageLength" : 50,
+					"order": [ 1, 'asc' ],
+					"responsive" : true,
+					"autoWidth" : false,
+					"language" : {
+						"search" : "Søg",
+						"lengthMenu" : "_MENU_ IT-systemer per side",
+						"info" : "Viser _START_ til _END_ af _TOTAL_ IT-systemer",
+						"zeroRecords" : "Ingen data...",
+						"infoEmpty" : "",
+						"infoFiltered" : "(ud af _MAX_ IT-systemer)",
+						"paginate" : {
+							"previous" : "Forrige",
+							"next" : "Næste"
+						}
+					}
+				});
+
+				$('.systems').on('ifChecked', function(event){
+					chosenIdentifiers.push($(this).data("identifier"));
+				});
+
+				$('.systems').on('ifUnchecked', function(event){
+					var index = chosenIdentifiers.indexOf($(this).data("identifier"));
+					chosenIdentifiers.splice(index, 1);
+				});
+
+				//assign listeners again on page change
+				$('#systemTable').on('draw.dt', function() {
+					$('.systems').off('ifChecked');
+					$('.systems').off('ifUnchecked');
+
+					// show selected
+					$(".systems").iCheck('uncheck');
+					for (const identifier of chosenIdentifiers) {
+						$("#system_" + identifier).iCheck('check');
+					}
+
+					$('.systems').on('ifChecked', function(event){
+						chosenIdentifiers.push($(this).data("identifier"));
+					});
+
+					$('.systems').on('ifUnchecked', function(event){
+						var index = chosenIdentifiers.indexOf($(this).data("identifier"));
+						chosenIdentifiers.splice(index, 1);
+					});
+				});
+			}
+		}
+		/*]]>*/
+	</script>
+</body>
+</html>

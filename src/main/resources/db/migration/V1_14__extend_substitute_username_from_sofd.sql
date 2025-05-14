@@ -1,0 +1,1 @@
+ALTER TABLE substitute ADD COLUMN username_from_sofd BOOLEAN NOT NULL DEFAULT FALSE;

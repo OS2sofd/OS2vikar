@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div th:fragment="topbar" class="row border-bottom white-bg">
+    <nav class="navbar navbar-expand-lg navbar-static-top"
+         role="navigation">
+        <a th:href="@{/}" class="navbar-brand" style="background: white;">
+        <!-- 
+			<img class="img-fluid" src="/img/logo.png" style="display: inline; max-width: 30vw; max-height: 30px;">
+ 		-->
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse"
+                data-target="#navbar" aria-expanded="false"
+                aria-label="Toggle navigation">
+            <i class="fa fa-reorder"></i>
+        </button>
+
+			<div class="navbar-collapse collapse" id="navbar">
+				<ul class="nav navbar-nav mr-auto">
+
+					<th:block sec:authorize="isAuthenticated()">
+						<li sec:authorize="hasRole('ROLE_SYSTEM_ADMIN')">
+							<a role="button" th:href="@{/systemadmin/orgunits}" th:class="${page == 'orgUnits'} ? 'navActive' : ''">Enheder</a>
+						</li>
+						<li sec:authorize="hasRole('ROLE_SYSTEM_ADMIN')">
+							<a role="button" th:href="@{/systemadmin/titles}" th:class="${page == 'titles'} ? 'navActive' : ''">Arbejdstitler</a>
+						</li>
+						
+						<!-- still used by Roskilde -->
+						<li th:if="${@OS2VikarConfiguration.getRc().isEnabledForWorkplaces()}" sec:authorize="hasRole('ROLE_SYSTEM_ADMIN')">
+							<a role="button" th:href="@{/systemadmin/roles}" th:class="${page == 'roles'} ? 'navActive' : ''">Rettigheder</a>
+						</li>
+						 
+						<li sec:authorize="hasRole('ROLE_SYSTEM_ADMIN')">
+							<a role="button" th:href="@{/systemadmin/auditlog}" th:class="${page == 'log'} ? 'navActive' : ''">Log</a>
+						</li>
+						<li sec:authorize="hasRole('ROLE_SUBSTITUTE_ADMIN')">
+							<a role="button" th:href="@{/substituteadmin/substitutes}" th:class="${page == 'substitutes'} ? 'navActive' : ''">Vikarer</a>
+						</li>
+						<li sec:authorize="hasRole('ROLE_SUBSTITUTE_ADMIN')">
+							<a role="button" th:href="@{/substituteadmin/userpool}" th:class="${page == 'userPool'} ? 'navActive' : ''">Pulje af brugerkonti</a>
+						</li>
+						<li sec:authorize="hasRole('ROLE_SYSTEM_ADMIN')">
+							<a role="button" th:href="@{/systemadmin/settings}" th:class="${page == 'settings'} ? 'navActive' : ''">Opsætning</a>
+						</li>
+					</th:block>
+				</ul>
+
+            <ul sec:authorize="isAuthenticated()" class="d-none d-lg-inline nav navbar-top-links navbar-right ">
+                <li class="dropdown show">
+                    <a data-toggle="dropdown" href="#" aria-expanded="true"> <i class="fa fa-user"></i></a>
+                    <ul class="dropdown-menu">
+						<li>
+							<a th:href="@{/userguide}">Brugervejledning</a>
+						</li>
+                        <li>
+                            <a th:href="@{/saml/logout}">
+                                <i class="fa fa-sign-out"></i> &nbsp; Log ud
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+</div>
+</body>
+</html>

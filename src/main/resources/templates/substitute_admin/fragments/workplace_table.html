@@ -1,0 +1,125 @@
+<th:block th:fragment="workplaceTable" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<table class="table" id="workplaces">
+		<thead>
+			<tr>
+				<th>Enhed</th>
+				<th>Arbejdstitel</th>
+				<th class="vikar-landscape">Start</th>
+				<th class="vikar-landscape">Stop</th>
+				<th th:if="${@OS2VikarConfiguration.getRc().isEnabledForWorkplaces()}" class="vikar-web">Ekstra rettigheder</th>
+				<th class="actionColumn">Handlinger</th>
+			</tr>
+		</thead>
+	
+		<tbody>
+			<tr th:each="workplace : ${workplaces}">
+				<td th:text="${workplace.orgUnit.name}" />
+				<td th:text="${workplace.title}" />
+				<td class="vikar-landscape" th:text="${#temporals.format(workplace.start, 'yyyy-MM-dd')}"/>
+				<td class="vikar-landscape" th:text="${#temporals.format(workplace.stop, 'yyyy-MM-dd')}"/>
+				<td th:if="${@OS2VikarConfiguration.getRc().isEnabledForWorkplaces()}" class="vikar-web">
+					<p th:each="role : ${workplace.roles}" th:text="${role.name}"><br/></p>
+				</td>
+				<td>
+					<i th:if="${workplace.canBeExtended}" th:onclick="'substituteService.loadWorkplaceEditModal(' + ${workplace.id} + ')'" class="fa fa-fw fa-pencil" aria-hidden="true" style="color: black;"></i>
+					&nbsp;
+					<i th:if="${workplace.canBeExtended}" th:onClick="'workplaceTableService.cancelWorkplace(' + ${workplace.id} + ')'" class="fa fa-fw fa-times" aria-hidden="true" style="color: black;"></i>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+</th:block>
+
+<th:block th:fragment="workplaceTableScript" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var baseUrl = [[@{/}]];
+			var roleColumn = [[${@OS2VikarConfiguration.getRc().isEnabledForWorkplaces()}]];
+		+]*/
+		
+		var workplaceTableService;
+		$(document).ready(function() {
+			workplaceTableService = new WorkplaceTableService();
+		});
+		
+		function WorkplaceTableService() {
+			this.init = function() {
+				var columns = [
+						null,
+						null,
+						null,
+						null,
+					    { "orderable": false,
+						  "searchable": false}
+					  ]
+
+				if (roleColumn) {
+					columns = [
+						null,
+						null,
+						null,
+						null,
+						null,
+					    { "orderable": false,
+						  "searchable": false}
+					  ]
+				}
+
+				var table = $('#workplaces').DataTable({
+					"columns": columns,
+					"pageLength" : 50,
+					"responsive" : true,
+					"autoWidth" : false,
+					"language" : {
+						"search" : "Søg",
+						"lengthMenu" : "_MENU_ arbejdssteder per side",
+						"info" : "Viser _START_ til _END_ af _TOTAL_ arbejdssteder",
+						"zeroRecords" : "Ingen data...",
+						"infoEmpty" : "Henter data...",
+						"infoFiltered" : "(ud af _MAX_ arbejdssteder)",
+						"paginate" : {
+							"previous" : "Forrige",
+							"next" : "Næste"
+						}
+					}
+				});	
+			}
+			
+			this.cancelWorkplace = function(id) {
+				swal({
+                    html: true,
+                    title : 'Opsig arbejdssted',
+                    text : 'Er du sikker på at du vil opsige dette arbejdssted?',
+                    type : "warning",
+                    showCancelButton : true,
+                    confirmButtonColor : "#DD6B55",
+                    confirmButtonText : 'Ja',
+                    cancelButtonText : 'Nej',
+                    closeOnConfirm : true,
+                    closeOnCancel : true
+	            },
+            	function (isConfirm) {
+                    if (isConfirm) {
+						$.ajax({
+			    			   url: baseUrl + "rest/substituteadmin/substitutes/" + $("#id").val() + "/edit/workplaces/" + id + "/cancel",
+			    			   headers: {
+			    			      'X-CSRF-TOKEN': token
+			    			   },
+			    			   type: 'post',
+			    			   
+			    			   success: function(data, textStatus, jQxhr) {
+			    				   substituteService.loadWorkplaceTable();
+			    			   },
+			    			   error: function(jQxhr, textStatus, errorThrown) {
+			    					toastr.error("Fejl! Kunne ikke slette arbejdsstedet.");			    				      
+			    			   }
+			    		});
+                    }
+	            });
+			}
+		}
+		/*]]>*/
+	</script>
+</th:block>

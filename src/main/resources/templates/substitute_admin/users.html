@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header(datatables = true, checkbox = true)" />
+<body class="top-navigation">
+	<div id="wrapper">
+	    <div id="page-wrapper" class="gray-bg">
+			<div th:replace="fragments/topbar :: topbar(page = 'userPool')" />
+
+	        <div class="wrapper wrapper-content">
+	            <div class="row">
+	                <div class="col-lg-12">
+                        <div class="ibox">
+                            <div class="ibox-title">
+                                <h2><em class="fa fa-users"></em> &nbsp; Brugere &nbsp; <span th:unless="@{${@socketHandler.isConnectedToAD()}}" style="font-size: 14px;font-weight: bold;"><em class="fa fa-exclamation-triangle"></em> Ingen forbindelse til AD!</span></h2>
+                            </div>
+		
+                            <div class="ibox-content">
+								<p th:utext="${@cmsMessageBundle.getText('cms.accountpool.helptext')}"></p>
+								<br/>
+                            	<table class="table" id="table">
+									<thead>
+										<tr>
+											<th>Brugernavn</th>
+											<th th:if="${@OS2VikarConfiguration.getO365().isEnabled()}">Office licens</th>
+											<th>Oprettet</th>
+											<th>Status</th>
+										</tr>
+									</thead>
+								
+									<tbody>
+										<tr th:each="user : ${users}">
+											<td th:text="${user.username}" />
+											<td th:if="${@OS2VikarConfiguration.getO365().isEnabled()}">
+												<input type="checkbox" class="i-checks" th:checked="${user.withO365License}" disabled="disabled">
+											</td>
+											<td th:text="${#temporals.format(user.created,'yyyy-MM-dd HH:mm')}" />
+											<td>
+												<span th:if="${user.status == T(dk.digitalidentity.os2vikar.dao.model.enums.ADAccountPoolStatus).OK}">
+												    Klar til brug
+												</span>
+												<span th:if="${user.status == T(dk.digitalidentity.os2vikar.dao.model.enums.ADAccountPoolStatus).BROKEN}">
+												    Kontoen er i fejltilstand
+												</span>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+	                        </div>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+
+	    </div>
+	</div>
+
+	<div th:replace="fragments/footer :: scripts(datatables = true, checkbox = true)" />
+	<div th:replace="substitute_admin/fragments/substitutes_desktop_table :: substitutesDesktopTableScript" />
+	<div th:replace="substitute_admin/fragments/substitutes_mobile_table :: substitutesMobileTableScript" />
+	
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+			var o365Enabled = [[${@OS2VikarConfiguration.getO365().isEnabled()}]];
+		+]*/
+		
+		var token = $("meta[name='_csrf']").attr("content");
+		var userService;
+		$(document).ready(function() {
+			userService = new UserService();
+			
+			userService.init();
+		});
+		
+		function UserService() {
+			this.init = function() {
+				if (o365Enabled) {
+					var table = $('#table').DataTable({
+						"columns": [
+							null,
+
+							{ "orderable": false,
+							  "searchable": false},
+							null,
+							null
+						  ],
+						"pageLength" : 50,
+						"responsive" : true,
+						"autoWidth" : false,
+						"scrollX" : true,
+						"language" : {
+							"search" : "Søg",
+							"lengthMenu" : "_MENU_ brugere per side",
+							"info" : "Viser _START_ til _END_ af _TOTAL_ brugere",
+							"zeroRecords" : "Ingen data...",
+							"infoEmpty" : "Henter data...",
+							"infoFiltered" : "(ud af _MAX_ brugere)",
+							"paginate" : {
+								"previous" : "Forrige",
+								"next" : "Næste"
+							}
+						}
+					});
+				} else {
+					var table = $('#table').DataTable({
+						"pageLength" : 50,
+						"responsive" : true,
+						"autoWidth" : false,
+						"scrollX" : true,
+						"language" : {
+							"search" : "Søg",
+							"lengthMenu" : "_MENU_ brugere per side",
+							"info" : "Viser _START_ til _END_ af _TOTAL_ brugere",
+							"zeroRecords" : "Ingen data...",
+							"infoEmpty" : "Henter data...",
+							"infoFiltered" : "(ud af _MAX_ brugere)",
+							"paginate" : {
+								"previous" : "Forrige",
+								"next" : "Næste"
+							}
+						}
+					});
+				}
+			}
+		}
+
+		/*]]>*/
+	</script>
+</body>
+</html>

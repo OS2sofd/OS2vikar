@@ -1,0 +1,277 @@
+<th:block th:fragment="substituteForm" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<h3>Stamdata</h3>
+    <form class="form-horizontal">
+    	<input th:field="${substituteForm.id}" hidden>
+		<input th:field="${substituteForm.useSofdADUser}" hidden>
+		<input th:field="${substituteForm.sofdADUserId}" hidden>
+		<fieldset th:unless="${edit}">
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Personnummer*</label>
+				<div class="col-lg-5">
+					<input th:field="${substituteForm.cpr}" class="form-control">
+				</div>
+				<div class="col-lg-5">
+					<button class="btn btn-primary vikar-mobile-btn" type="button" onclick="substitutesFormService.cprLookup()">Hent fra folkeregister</button>
+				</div>
+			</div>
+		</fieldset>
+		<fieldset th:if="${edit}">
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Personnummer*</label>
+				<div class="col-lg-10">
+					<input th:field="${substituteForm.cpr}" class="form-control" disabled="disabled">
+				</div>
+			</div>
+		</fieldset>
+		<fieldset th:if="${edit}">
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Brugernavn</label>
+				<div class="col-lg-10">
+					<input th:field="${substituteForm.username}" class="form-control" disabled="disabled">
+				</div>
+			</div>
+		</fieldset>
+		<fieldset>
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Fornavn*</label>
+				<div class="col-lg-10">
+					<input th:field="${substituteForm.name}" class="form-control">
+				</div>
+			</div>
+		</fieldset>
+		<fieldset>
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Efternavn*</label>
+				<div class="col-lg-10">
+					<input th:field="${substituteForm.surname}" class="form-control">
+				</div>
+			</div>
+		</fieldset>
+		<fieldset>
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Email</label>
+				<div class="col-lg-10">
+					<input th:field="${substituteForm.email}" class="form-control">
+				</div>
+			</div>
+		</fieldset>
+		<fieldset>
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Telefon</label>
+				<div class="col-lg-10">
+					<input th:field="${substituteForm.phone}" class="form-control">
+				</div>
+			</div>
+		</fieldset>
+		<fieldset>
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Vikarbureau</label>
+				<div class="col-lg-10">
+					<input th:field="${substituteForm.agency}" class="form-control">
+				</div>
+			</div>
+		</fieldset>
+		<fieldset th:if="${@OS2VikarConfiguration.employeeSignatureEnabled}">
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Skal have tildelt medarbejdersignatur?</label>
+				<div class="col-lg-1">
+					<input type="checkbox" th:field="${substituteForm.assignEmployeeSignature}" id="assignEmployeeSignature" class="form-control i-checks">
+				</div>
+			</div>
+		</fieldset>
+		<fieldset th:if="${@OS2VikarConfiguration.enableAuthorizationCodes} and ${edit}">
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Autorisationskode</label>
+				<div class="col-lg-5">
+					<select th:field="${substituteForm.authorizationCode}" class="form-control" disabled="disabled">
+					    <th:block th:if="${substituteForm.authorizationCode != null}">
+					        <option th:value="${substituteForm.authorizationCode}" th:text="${substituteForm.authorizationCode}"></option>
+					    </th:block>
+					</select>
+				</div>
+				<div class="col-lg-5">
+					<button id="authorizationCodeButton" class="btn btn-primary vikar-mobile-btn" type="button" onclick="substitutesFormService.authorizationCodeLookup()" th:disabled="${edit == false}">Hent autorisationskode</button>
+				</div>
+			</div>
+		</fieldset>
+	</form>
+</th:block>
+
+<th:block th:fragment="substituteFormScript" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var baseUrl = [[@{/}]];
+			var allowDoubleAccounts = [[${@OS2VikarConfiguration.isDoubleAccountsAllowed()}]];
+			var authorizationCodesEnabled = [[${@OS2VikarConfiguration.enableAuthorizationCodes}]];
+			var isEdit = [[${edit}]];
+		+]*/
+		
+		var substitutesFormService;
+		$(document).ready(function() {
+			substitutesFormService = new SubstitutesFormService();
+			substitutesFormService.init();
+		});
+		
+		function SubstitutesFormService() {
+			this.init = function() {
+				$("#cpr").on('keyup', function (e) {
+		      	    if (e.key === 'Enter' || e.keyCode === 13) {
+		      	    	substitutesFormService.cprLookup();
+		      	    }
+		      	});
+				
+				if (authorizationCodesEnabled && isEdit) {
+					$("#authorizationCodeButton").prop("disabled", false);
+				    $("#authorizationCode").prop("disabled", true);
+				}
+			}
+			
+			this.cprLookup = function(verifyOnly = false) {
+				if (!verifyOnly) {
+					$("#name").val("");
+					$("#surname").val("");
+				}
+				
+				var cpr = $("#cpr").val();
+				if (cpr.length >= 10) {
+					cpr = cpr.replaceAll(/[^A-Za-z0-9]/g, '');
+	
+					if (cpr.length != 10) {
+						toastr.warning("Ugyldigt cpr");
+						return;
+					}
+					
+					var url = restUrl + '/substitutes/new/cprlookup/' + cpr;
+					
+					$.ajax({
+						url : url,
+						type : 'get',
+						contentType: 'application/json',
+						headers: {
+							'X-CSRF-TOKEN': token
+						},
+						success : function(response) {
+							if (response.exists) {
+								substitutesFormService.fireExists(cpr);
+							}
+							else if (response.inSofd) {
+								substitutesFormService.fireSofd(response.hasSofdADUser, response.sofdADUserId);
+							}
+
+							if (!verifyOnly) {
+								$("#name").val(response.name);
+								$("#surname").val(response.surname);
+							}
+						},
+						error: function(jqXHR, textStatus, error) {
+							switch (jqXHR.status) {
+								case 400:
+									toastr.warning(jqXHR.responseText);
+									break;
+								default:
+									toastr.warning('Teknisk fejl: ' + jqXHR.responseText);
+									break;
+							}
+						}
+					});
+				}
+				else {
+					toastr.warning("Indtast et gyldigt cpr");
+				}
+			}
+
+			this.fireExists = function(cpr) {
+				swal({
+					title: "Vikaren findes allerede",
+					text: "Vil du gå til den eksisterende vikar eller afbryde oprettelsen?",
+					showCancelButton: true,
+					confirmButtonColor: "#1ab394",
+					confirmButtonText: "Gå til vikar",
+					cancelButtonText: "Afbryd oprettelse",
+					closeOnConfirm: false,
+					allowEscapeKey : false
+				}, function (isConfirm) {
+					if (isConfirm) {
+						window.location = "/substituteadmin/substitutes/cpr/" + cpr;
+					} else {
+						window.location = "/substituteadmin/substitutes";
+					}
+				});
+			}
+
+			this.fireSofd = function(hasADUser, userId) {
+				if (hasADUser) {
+					swal({
+						title: "Person med dette personnummer har allerede en brugerkonto (grundet ansættelse)",
+						text: "Vil du benytte den eksisterende brugerkonto med brugernavn "  + userId + " til vikaren i stedet for at oprette en ny?",
+						showCancelButton: allowDoubleAccounts,
+						confirmButtonColor: "#1ab394",
+						confirmButtonText: "Benyt eksisterende",
+						cancelButtonText: "Opret ny konto",
+						closeOnConfirm: true,
+						allowEscapeKey : false
+					}, function (isConfirm) {
+						if (isConfirm) {
+							$("#useSofdADUser").val("true");
+							$("#sofdADUserId").val(userId);
+							$("#assignEmployeeSignature").iCheck('disable');
+							$("#assignEmployeeSignature").iCheck('uncheck');
+							$("#requireO365License").iCheck('disable');
+							$("#requireO365License").iCheck('uncheck');
+						}
+						else {
+							$("#useSofdADUser").val("false");
+							$("#sofdADUserId").val("");
+							$("#assignEmployeeSignature").iCheck('enable');
+							$("#requireO365License").iCheck('enable');
+						}
+					});
+				}
+			}
+
+			this.authorizationCodeLookup = function() {
+				if(!authorizationCodesEnabled) {
+				    return;
+				}
+				
+				var name = $("#name").val();
+				var cpr = $("#cpr").val();
+				var url = restUrl + '/substitutes/authorizationCodeLookup?' + "cpr=" + cpr + "&name=" + name;
+				
+				$.ajax({
+					url : url,
+					type : 'get',
+					contentType: 'application/json',
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					success : function(response) {
+						$("#authorizationCode").prop("disabled", false);
+						$('#authorizationCode').empty();
+
+						$.each(response, function (i, item) {
+							$('#authorizationCode').append($('<option>', {
+								value: item.code,
+								text : item.name + " (" + item.code + ")"
+							}));
+						});
+					},
+					error: function(jqXHR, textStatus, error) {
+						$('#authorizationCode').empty();
+						switch (jqXHR.status) {
+							case 400:
+								toastr.warning(jqXHR.responseText);
+								break;
+							default:
+								toastr.warning('Teknisk fejl: ' + jqXHR.responseText);
+								break;
+						}
+					}
+				});
+			}
+		}
+		/*]]>*/
+	</script>
+</th:block>

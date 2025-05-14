@@ -1,0 +1,214 @@
+<th:block th:fragment="workplaceForm" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<form class="form-horizontal">
+		<fieldset>
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Enhed*</label>
+				<div class="col-lg-5">
+					<input id="orgUnitName" name="orgUnitName" class="form-control workplace" readonly>
+					<input id="orgUnitUuids" name="orgUnitUuids" class="form-control workplace" hidden>
+				</div>
+				<div class="col-lg-5">
+					<button class="btn btn-primary vikar-mobile-btn" type="button" onclick="chooseOrgUnitService.openModal();">Vælg enheder</button>
+				</div>
+			</div>
+		</fieldset>
+		<fieldset>
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Arbejdstitel*</label>
+				<div class="col-lg-5">
+					<select id="titles" name="titles" class="form-control workplace" disabled="disabled">
+					</select>
+				</div>
+			</div>
+		</fieldset>
+		<fieldset>
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Start dato*</label>
+				<div class="col-lg-5">
+					<input id="start" name="start" class="form-control date workplace" disabled="disabled">
+				</div>
+			</div>
+		</fieldset>
+		<fieldset>
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Stop dato*</label>
+				<div class="col-lg-5">
+					<input id="stop" name="stop" class="form-control date workplace" disabled="disabled">
+				</div>
+			</div>
+		</fieldset>
+		<fieldset th:if="${@OS2VikarConfiguration.getO365().isEnabled()}">
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Skal have Office 365 licens?</label>
+				<div class="col-lg-1">
+					<input type="checkbox" id="requireO365License" name="requireO365License" class="form-control workplace i-checks" disabled="disabled">
+				</div>
+			</div>
+		</fieldset>
+
+		<fieldset th:if="${@OS2VikarConfiguration.getRc().isEnabledForWorkplaces()}">
+			<div class="form-group row">
+				<label class="col-lg-2 control-label">Ekstra rettigheder</label>
+				<div class="col-lg-5">
+					<select id="roles" name="roles" multiple="multiple" class="form-control workplace" style="width:100%;" disabled="disabled">
+					</select>
+				</div>
+			</div>
+		</fieldset>
+
+		<fieldset>
+			<div class="form-group row">
+				<div class="col-lg-12" th:utext="${@cmsMessageBundle.getText('cms.workplace.wait.helptext')}"></div>
+			</div>
+		</fieldset>
+	</form>
+</th:block>
+
+<th:block th:fragment="workplaceFormScript" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var baseUrl = [[@{/}]];
+		+]*/
+		
+		var workplaceFormService;
+		$(document).ready(function() {
+			workplaceFormService = new WorkplaceFormService();
+			workplaceFormService.init();
+		});
+		
+		function WorkplaceFormService() {
+			this.init = function() {
+				$("#roles").select2({});
+				
+				$('#start').datepicker({
+					keyboardNavigation: false,
+					forceParse: false,
+					autoclose: true,
+					weekStart: 1,
+					format: "yyyy-mm-dd",
+					orientation: "bottom"
+				});
+				
+				$('#stop').datepicker({
+					keyboardNavigation: false,
+					forceParse: false,
+					autoclose: true,
+					weekStart: 1,
+					format: "yyyy-mm-dd",
+					orientation: "bottom"
+				});
+				
+				$("#orgUnitUuids").change(function() {
+					var uuids = $("#orgUnitUuids").val();
+					
+					if (uuids != null && uuids != '') {
+						var start = new Date();
+						start.setDate(start.getDate() - 30);
+						$('#start').datepicker('setStartDate', start);
+						$("#start").datepicker('setDate', new Date());
+						$("#start").prop('disabled', false);
+
+						$("#changeStrategy").prop('hidden', true);
+						$("#changeStrategySelect").prop('disabled', true);
+					}
+					else {
+						workplaceFormService.disableAllFields();
+					}
+				});
+				
+				$("#start").change(function() {
+					var start = $("#start").val();
+					var uuids = $("#orgUnitUuids").val();
+
+					if (start != null && start != '') {
+						$.ajax({
+							url : restUrl + "/orgunits/oudata?uuids=" + uuids,
+							type : 'get',
+							contentType: 'application/json',
+							headers: {
+								'X-CSRF-TOKEN': token
+							},
+							success : function(response) {
+								// handle titles
+								var storedTitle = $('#titles').val();
+								$('#titles').empty();
+								$('#titles').append('<option value="0"></option>');
+								for (var title of response.titles) {
+									$('#titles').append('<option value="' + title.title + '">' + title.title + '</option>');
+								}
+								$("#titles").prop('disabled', false);
+								
+								// if this title no longer exists, it will just clear it
+								$('#titles').val(storedTitle);
+								
+								// handle roles
+								$('#roles').empty()
+								for (var role of response.roles) {
+									$('#roles').append('<option value="' + role.id + '" data-global="' + role.global + '">' + role.name + '</option>');
+								}
+								$("#roles").prop('disabled', false);
+
+								if ($("#useSofdADUser").val() != "true") {
+									$("#requireO365License").iCheck('check');
+									$("#requireO365License").prop('disabled', false);
+									
+									// this should not be necessary, but for some reason it is...
+									$("#requireO365License").parent().removeClass("disabled");
+								}
+								
+								// handle days
+								days = response.maxDays;
+								var dateSplit = start.split("-");
+								var newStart = dateSplit[0] + "/" + dateSplit[1] + "/" + dateSplit[2];
+								var startAsDate = new Date(newStart);
+								var maxStopDate = new Date(newStart);
+								var curStopDate = new Date(newStart);
+								curStopDate.setDate(curStopDate.getDate() + response.defaultDays);
+								maxStopDate.setDate(maxStopDate.getDate() + days);
+
+								$('#stop').datepicker('setStartDate', startAsDate);
+								$('#stop').datepicker('setEndDate', maxStopDate);
+								$("#stop").datepicker('setDate', curStopDate);
+								$("#roles").prop('disabled', false);
+								$("#stop").prop('disabled', false);
+							},
+							error: function(jqXHR, textStatus, error) {
+								if (jqXHR.responseText == null) {
+									toastr.warning("Kunne ikke finde oplysninger for den valgte orgUnit");
+								} else {
+									toastr.warning(jqXHR.responseText);
+								}
+
+								$("#orgUnitName").val("");
+								$("#orgUnitUuids").val("");
+								workplaceFormService.disableAllFields();
+
+								return;
+							}
+						});
+					}
+					else {
+						$("#stop").val("");
+						$("#stop").prop('disabled', true);
+					}
+				});
+			}
+
+			this.disableAllFields = function() {
+				$("#start").val("");
+				$("#start").prop('disabled', true);
+				$("#stop").prop('disabled', true);
+
+				$("#changeStrategy").prop('hidden', true);
+				$("#changeStrategySelect").prop('disabled', true);
+				$("#titles").prop('disabled', true);
+				$("#roles").prop('disabled', true);
+				$("#requireO365License").iCheck('uncheck');
+				$("#requireO365License").prop('disabled', false);
+			}
+		}
+		/*]]>*/
+	</script>
+</th:block>

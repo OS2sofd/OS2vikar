@@ -1,0 +1,109 @@
+<th:block th:fragment="substitutesMobileTable" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<table class="table" id="mobileSubstitutes">
+		<thead>
+			<tr>
+				<th hidden>Id</th>
+				<th>Navn</th>
+				<th class="vikar-landscape">Arbejdssted</th>
+				<th style="width: 30px !important;">Status</th>
+			</tr>
+		</thead>
+	</table>
+</th:block>
+
+<th:block th:fragment="substitutesMobileTableScript" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var baseUrl = [[@{/}]];
+			var mobileEditUrl = [[@{/substituteadmin/substitutes/}]];
+		+]*/
+		
+		var mobileFragmentService;
+		$(document).ready(function() {
+			mobileFragmentService = new MobileFragmentService();
+		});
+		
+		function MobileFragmentService() {
+			this.init = function() {
+				var table = $('#mobileSubstitutes').DataTable({
+					"destroy": true,
+					"ajax": {
+						"contentType": "application/json",
+						"url": "/rest/substituteadmin/substitutes/list/mobile",
+						"type": "POST",
+						"headers": {
+							"X-CSRF-TOKEN": token
+						},
+						"data": function(d) {
+							return JSON.stringify(d);
+						}
+					},
+					"serverSide": true,
+					"columns": [
+						{
+							"data": "id",
+							className: "id d-none"
+						},
+						{
+							"data": "name",
+							"render": function (data, type, row, meta) {
+								return data + " " + row.surname;
+							},
+							className: "clickable"
+						},
+						{
+							"data": "id",
+							"orderable": false,
+							"searchable": false,
+							"render": function (data, type, row, meta) {
+								return row.workplaceString;
+							},
+							className: "clickable vikar-landscape"
+						},
+						{
+							"data": "id",
+							"render": function (data, type, row, meta) {
+								if (data == "YELLOW") {
+									return '<em style="color: yellow;" class="fa fa-fw fa-circle"></em>';
+								} else if (data == "GREEN") {
+									return '<em style="color: green;" class="fa fa-fw fa-circle"></em>';
+								} else {
+									return '<em style="color: red;" class="fa fa-fw fa-circle"></em>';
+								}
+							},
+							className: "clickable"
+						}
+					],
+					"pageLength" : 50,
+					"responsive" : true,
+					"autoWidth" : false,
+					"language" : {
+						"search" : "Søg",
+						"lengthMenu" : "_MENU_ vikarer per side",
+						"info" : "Viser _START_ til _END_ af _TOTAL_ vikarer",
+						"zeroRecords" : "Ingen data...",
+						"infoEmpty" : "",
+						"infoFiltered" : "(ud af _MAX_ vikarer)",
+						"paginate" : {
+							"previous" : "Forrige",
+							"next" : "Næste"
+						}
+					}
+				});
+
+				$('#mobileSubstitutes').DataTable().on("draw", function() {
+					mobileFragmentService.addColumnOnClickListener();
+				});
+			}
+			
+			this.addColumnOnClickListener = function() {
+				$("td.clickable").on('click', function(event){
+					window.location.href = mobileEditUrl + $(this).siblings(".id").text() + "/edit";
+				});
+			}
+		}
+		/*]]>*/
+	</script>
+</th:block>

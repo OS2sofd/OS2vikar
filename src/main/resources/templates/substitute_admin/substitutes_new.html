@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header(datatables = true, select2 = true, jstree = true, datepicker = true, checkbox = true)" />
+<body class="top-navigation">
+	<div id="wrapper">
+	    <div id="page-wrapper" class="gray-bg">
+			<div th:replace="fragments/topbar :: topbar(page = 'substitutes')"></div>
+
+	        <div class="wrapper wrapper-content">
+	            <div class="row">
+	                <div class="col-lg-12">
+                        <div class="ibox">
+                            <div class="ibox-title">
+                                <h2><em class="fa fa-user"></em> &nbsp; Opret vikar</h2>
+                            </div>
+		
+                            <div class="ibox-content">
+                            	<div th:replace="substitute_admin/fragments/substitute_form :: substituteForm(edit = false)"></div>
+								<br/>
+								<h3>Arbejdssted</h3>
+								<p>Her oprettes det første arbejdssted. Der kan senere oprettes flere på redigeringssiden.</p>
+								<div th:replace="substitute_admin/fragments/workplace_form :: workplaceForm"></div>
+								<br/><hr/><br/>
+								<button class="btn btn-primary full-width" style="margin-bottom: 10px" onclick="substituteService.save();">Gem</button>
+								<a class="btn btn-danger full-width" th:href="@{/substituteadmin/substitutes}">Annuller</a>
+	                        </div>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+
+	    </div>
+	</div>
+	
+	<style>
+		.sweet-alert > h2 {
+		    font-size: 18px;
+		    line-height: 24px;
+		}
+	</style>
+	
+	<div th:replace="substitute_admin/fragments/substitutes_choose_org_unit :: substitutesChooseOrgUnit"></div>
+	
+	<div th:replace="fragments/footer :: scripts(datatables = true, select2 = true, jstree = true, datepicker = true, checkbox = true)"></div>
+	<div th:replace="substitute_admin/fragments/substitutes_choose_org_unit :: substitutesChooseOrgUnitScript"></div>
+	<div th:replace="substitute_admin/fragments/substitute_form :: substituteFormScript"></div>
+	<div th:replace="substitute_admin/fragments/workplace_form :: workplaceFormScript"></div>
+	
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+		    var url = [[@{/substituteadmin}]];
+            var orgUnits = [[${orgUnits}]];
+            var restUrl = [[@{/rest/substituteadmin}]];
+			var allowDoubleAccounts = [[${@OS2VikarConfiguration.isDoubleAccountsAllowed()}]];
+		+]*/
+		
+		var token = $("meta[name='_csrf']").attr("content");
+		var substituteService;
+		var chosenOUUuids = [];
+		var chosenOUNames = [];
+		$(document).ready(function() {
+			substituteService = new SubstituteService();
+		});
+		
+		function SubstituteService() {
+			this.save = function() {
+				var cpr = $("#cpr").val();
+				cpr = cpr.replaceAll(/[^A-Za-z0-9]/g, '');
+
+				if (cpr.length != 10) {
+					toastr.warning("Ugyldigt cpr");
+					return;
+				}
+				
+				var title = $('#titles :selected').val();
+				if (title == '0') {
+					toastr.warning("Der skal vælges en arbejdstitel");
+					return;
+				}
+				
+				loading();
+
+				var roles = [];
+				$('#roles :selected').each(function(index) { 
+					var role = {id: $(this).val(), global: $(this).data("global")};
+					roles.push(role);
+				});
+				
+				// extra verification against SOFD, just to make sure (if not already chosen to use SOFD AD User)
+				if (!allowDoubleAccounts && $("#useSofdADUser").val() != "true") {
+					substitutesFormService.cprLookup(true);
+				}
+				
+				$.ajax({
+					url : restUrl + "/substitutes/save",
+					type : 'post',
+					contentType: 'application/json',
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					data : JSON.stringify({
+						cpr: cpr,
+						name: $("#name").val(),
+						surname: $("#surname").val(),
+						orgUnitUuids: $("#orgUnitUuids").val(),
+						title: title,
+						start: $("#start").val(),
+						stop: $("#stop").val(),
+						roles: roles,
+						email: $("#email").val(),
+						phone: $("#phone").val(),
+						agency: $("#agency").val(),
+						requireO365License: $("#requireO365License").prop("checked"),
+						assignEmployeeSignature: $("#assignEmployeeSignature").prop("checked"),
+						changeStrategy: $("#changeStrategySelect").val(),
+						useSofdADUser: $("#useSofdADUser").val(),
+						sofdADUserId: $("#sofdADUserId").val()
+					}),
+					success : function(response) {
+						stopLoading();
+
+						if (response != null && response != "") {
+							toastr.success(response);
+
+							setTimeout(function() {
+								window.location.href=url + "/substitutes";
+							}, 8000);
+						}
+						else {
+							window.location.href=url + "/substitutes";
+						}
+					},
+					error: function(jqXHR, textStatus, error) {
+						stopLoading();
+						switch (jqXHR.status) {
+							case 400:
+								toastr.warning(jqXHR.responseText);
+								break;
+							default:
+								toastr.warning('Teknisk fejl: ' + jqXHR.responseText);
+								break;
+						}
+					}
+				});
+			}
+		}
+
+		/*]]>*/
+	</script>
+</body>
+</html>

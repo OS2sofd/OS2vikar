@@ -1,0 +1,1 @@
+ALTER TABLE substitute ADD COLUMN disabled_in_ad BOOLEAN NOT NULL DEFAULT 0;

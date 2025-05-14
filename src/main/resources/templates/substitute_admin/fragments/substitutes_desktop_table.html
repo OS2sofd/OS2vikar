@@ -1,0 +1,99 @@
+<th:block th:fragment="substitutesDesktopTable" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<table class="table" id="desktopSubstitutes">
+		<thead>
+			<tr>
+				<th>Navn</th>
+				<th>Brugernavn</th>
+				<th>Arbejdssteder</th>
+				<th>Vikarbureau</th>
+				<th class="actionColumn">Handlinger</th>
+			</tr>
+		</thead>
+	</table>
+</th:block>
+
+<th:block th:fragment="substitutesDesktopTableScript" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		var desktopFragmentService;
+		$(document).ready(function() {
+			desktopFragmentService = new DesktopFragmentService();
+		});
+		
+		function DesktopFragmentService() {
+			this.init = function() {
+				var table = $('#desktopSubstitutes').DataTable({
+					"destroy": true,
+					"ajax": {
+						"contentType": "application/json",
+						"url": "/rest/substituteadmin/substitutes/list/desktop",
+						"type": "POST",
+						"headers": {
+							"X-CSRF-TOKEN": token
+						},
+						"data": function(d) {
+							return JSON.stringify(d);
+						}
+					},
+					"serverSide": true,
+					"columns": [
+						{
+							"data": "name",
+							"render": function (data, type, row, meta) {
+								return data + " " + row.surname;
+							}
+						},
+						{
+							"data": "username",
+							"render": function (data, type, row, meta) {
+								return row.userName;
+							}
+						},
+						{
+							"data": "id",
+							"orderable": false,
+							"searchable": false,
+							"render": function (data, type, row, meta) {
+								return row.workplaceString;
+							}
+						},
+						{
+							"data": "agency",
+							"render": function (data, type, row, meta) {
+								if (data == null) {
+									return "";
+								} else {
+									return data;
+								}
+							}
+						},
+						{
+							"data": "id",
+							"orderable": false,
+							"render": function (data, type, row, meta) {
+								return '<a href="/substituteadmin/substitutes/' + data + '/edit"><em class="fa fa-fw fa-pencil" style="color: black;"></em></a>';
+							}
+						}
+					],
+					"pageLength" : 50,
+					"responsive" : true,
+					"autoWidth" : false,
+					"language" : {
+						"search" : "Søg",
+						"lengthMenu" : "_MENU_ vikarer per side",
+						"info" : "Viser _START_ til _END_ af _TOTAL_ vikarer",
+						"zeroRecords" : "Ingen data...",
+						"infoEmpty" : "",
+						"infoFiltered" : "(ud af _MAX_ vikarer)",
+						"paginate" : {
+							"previous" : "Forrige",
+							"next" : "Næste"
+						}
+					}
+				});
+			}
+		}
+		/*]]>*/
+	</script>
+</th:block>

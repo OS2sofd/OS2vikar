@@ -1,0 +1,141 @@
+<th:block th:fragment="substituteEditWorkplace" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<div class="modal fade" id="modalEditWorkplace" role="dialog">
+		<div class="modal-dialog modal-lg modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header">
+			        <h2 style="font-weight: bold">Rediger arbejdssted</h2>
+			        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+			          <em aria-hidden="true" class="fa fa-times"></em>
+			        </button>
+			    </div>
+				<div class="modal-body">
+					<form class="form-horizontal">
+						<input id="editWorkplaceMaxWorkingDays" th:value="${workplace.orgUnit.maxSubstituteWorkingDays}" hidden>
+						<fieldset>
+							<div class="form-group row">
+								<label class="col-lg-2 control-label">Enhed</label>
+								<div class="col-lg-5">
+									<input th:value="${workplace.orgUnit.name}" class="form-control workplace" disabled="disabled">
+								</div>
+							</div>
+						</fieldset>
+						<fieldset>
+							<div class="form-group row">
+								<label class="col-lg-2 control-label">Arbejdstitel</label>
+								<div class="col-lg-5">
+									<input th:value="${workplace.title}" class="form-control workplace" disabled="disabled">
+								</div>
+							</div>
+						</fieldset>
+						<fieldset>
+							<div class="form-group row">
+								<label class="col-lg-2 control-label">Start dato</label>
+								<div class="col-lg-5">
+									<input th:value="${workplace.start}" class="form-control date workplace" disabled="disabled">
+								</div>
+							</div>
+						</fieldset>
+						<fieldset>
+							<div class="form-group row">
+								<label class="col-lg-2 control-label">Stop dato</label>
+								<div class="col-lg-5">
+									<input id="editStop" th:value="${workplace.stop}" class="form-control date workplace">
+								</div>
+							</div>
+						</fieldset>
+						<fieldset th:if="${@OS2VikarConfiguration.getO365().isEnabled()}">
+							<div class="form-group row">
+								<label class="col-lg-2 control-label">Skal have Office 365 licens?</label>
+								<div class="col-lg-1">
+									<input type="checkbox" id="editRequireO365License" name="editRequireO365License" class="form-control workplace i-checks" th:checked="${workplace.requireO365License}">
+								</div>
+							</div>
+						</fieldset>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button class="btn btn-primary full-width" style="margin-bottom: 10px" th:onclick="'workplaceEditService.save(' + ${workplace.id} + ');'">Gem</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</th:block>
+
+<th:block th:fragment="substituteEditWorkplaceScript" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var baseUrl = [[@{/}]];
+		+]*/
+		
+		var workplaceEditService;
+		$(document).ready(function() {
+			workplaceEditService = new WorkplaceEditService();
+		});
+		
+		function WorkplaceEditService() {
+			this.init = function() {
+				$('#editStop').datepicker({
+					keyboardNavigation: false,
+					forceParse: false,
+					autoclose: true,
+					weekStart: 1,
+					format: "yyyy-mm-dd",
+					orientation: "bottom"
+				});
+				
+				var maxDays = $("#editWorkplaceMaxWorkingDays").val();
+				
+				//Baseret på at det er i dag + max dage ud i fremtiden.
+				var today = new Date();
+				$('#editStop').datepicker('setStartDate', today);
+				
+				var maxStopDate = new Date();
+				maxStopDate.setDate(maxStopDate.getDate() + parseInt(maxDays));
+				$('#editStop').datepicker('setEndDate', maxStopDate);
+				
+				$('.i-checks').iCheck({
+					checkboxClass: 'icheckbox_square-green',
+					radioClass: 'iradio_square-green',
+				});
+			}
+			
+			this.save = function(id) {
+				var licenseRequired = false;
+				if ($("#editRequireO365License").prop("checked")) {
+					licenseRequired = true;
+				}
+				
+				$.ajax({
+					url : restUrl + "/substitutes/" + $("#id").val() + "/edit/workplaces/" + id + "/edit?stop=" + $("#editStop").val()+"&license=" + licenseRequired,
+					type : 'post',
+					contentType: 'application/json',
+					headers: {
+						'X-CSRF-TOKEN': token
+					},
+					success : function(response) {
+						$("#modalEditWorkplace").modal('hide');
+						
+						if (!response) {
+							toastr.warning('AD kontoen er muligvis ikke blevet reaktiveret korrekt');
+						}
+						
+						substituteService.loadWorkplaceTable();
+					},
+					error: function(jqXHR, textStatus, error) {
+						switch (jqXHR.status) {
+							case 400:
+								toastr.warning(jqXHR.responseText);
+								break;
+							default:
+								toastr.warning('Teknisk fejl: ' + jqXHR.responseText);
+								break;
+						}
+					}
+				});
+			}
+		}
+		/*]]>*/
+	</script>
+</th:block>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header(jstree = true, checkbox = true, datatables = true)" />
+<body class="top-navigation">
+	<div id="wrapper">
+	    <div id="page-wrapper" class="gray-bg">
+			<div th:replace="fragments/topbar :: topbar(page = 'orgUnits')" />
+
+	        <div class="wrapper wrapper-content">
+	            <div class="row">
+	                <div class="col-lg-12">
+                        <div class="ibox">
+                            <div class="ibox-title">
+                            	<div class="row">
+                            		<div class="col-lg-4">
+                            			<h2><em class="fa fa-sitemap"></em> &nbsp; Enheder</h2>
+                            		</div>
+                            		<div class="col-lg-8" style="display: flex; justify-content: flex-end; ">
+                            			<span th:utext="${@cmsMessageBundle.getText('cms.orgunits.helptext')}"></span>
+                            		</div>
+                            	</div>
+                            </div>
+		
+                            <div class="ibox-content">
+                            	<div class="row">
+	                            	<div class="col-lg-5">
+	                            		<div class="col-lg-12">
+	                            			<label class="control-label" style="margin-top: 10px;">Søg</label>
+											<input class="form-control" id='orgUnitTreeSearchField' autofocus="autofocus" style="margin-bottom: 40px;" />
+	                            			<div th:id='orgUnitTreeHierarchy'></div>
+	                            		</div>
+	                            	</div>
+	                            	<div class="col-lg-7" id="description">
+	                            		<div class="col-lg-12">
+	                            			<h3>Den valgte enhed</h3>
+		                            		<form class="form-horizontal">
+												<fieldset>
+													<div class="form-group row">
+														<label class="col-sm-2 control-label">Navn</label>
+														<div class="col-sm-10">
+															<input class="form-control" disabled="disabled"/>
+														</div>
+													</div>
+												</fieldset>
+												
+												<fieldset>
+													<div class="form-group row">
+														<label class="col-sm-2 control-label">UUID</label>
+														<div class="col-sm-10">
+															<input class="form-control" disabled="disabled"/>
+														</div>
+													</div>
+												</fieldset>
+												
+												<!--  
+												<fieldset>
+										            <div class="form-group row">
+										                <label class="col-sm-2 control-label">Leder</label>
+										                <div class="col-sm-10">
+										                    <input class="form-control" disabled="disabled"/>
+										                </div>
+										            </div>
+										        </fieldset>
+										        -->
+										        
+										        <fieldset>
+													<div class="form-group row">
+														<label class="col-lg-2 control-label">Kan have vikarer?</label>
+														<div class="col-lg-10">
+															<input type="checkbox" class="form-control i-checks" disabled="disabled"/>
+														</div>
+													</div>
+												</fieldset>
+											</form>
+	                            		</div>
+	                            	</div>
+	                           </div>
+	                        </div>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+
+	    </div>
+	</div>
+	
+	<div class="modal fade" id="modalAddTitle" role="dialog">
+		<div class="modal-dialog modal-md modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header">
+			        <h2 style="font-weight: bold">Opret lokal arbejdstitel</h2>
+			        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+			          <em aria-hidden="true" class="fa fa-times"></em>
+			        </button>
+			    </div>
+				<div class="modal-body">
+					<fieldset>
+						<div class="form-group row">
+							<label class="col-lg-2 control-label">Titel</label>
+							<div class="col-lg-10">
+								<input id="title" class="form-control"/>
+							</div>
+						</div>
+					</fieldset>
+					<br/>
+					<fieldset style="text-align: right;">
+						<button class="btn btn-primary" onclick="titleService.save()">Opret</button>
+					</fieldset>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div th:replace="fragments/footer :: scripts(jstree = true, checkbox = true, datatables = true)"></div>
+	<div th:replace="system_admin/fragments/ou_description :: descriptionScript"></div>
+	
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+		    var url = [[@{/systemadmin}]];
+            var orgUnits = [[${orgUnits}]];
+		+]*/
+		
+		var token = $("meta[name='_csrf']").attr("content");
+		var orgUnitService;
+		$(document).ready(function() {
+			orgUnitService = new OrgUnitService();
+			
+			orgUnitService.initOrgUnitTree();
+		});
+		
+		function OrgUnitService() {
+			this.initOrgUnitTree = function() {
+	            $('#orgUnitTreeHierarchy').jstree('destroy');
+
+	            var config = {
+	                "core": {
+	                    "data": orgUnits,
+	                    "themes": {
+	                        "icons": false
+	                    }
+	                },
+	                "search" : {
+	                    "show_only_matches": true,
+	                    "search_callback": function(str, node) {
+	                        return (node.text.toUpperCase().includes(str.toUpperCase()));
+	                    }
+	                },
+	                "plugins" : [
+	                    "wholerow", "search"
+	                ]
+	                
+	            };
+	            
+	            // Init OrgUnitTree
+				$('#orgUnitTreeHierarchy').jstree(config);
+
+	            // searching in the JSTree
+	            var to = false;
+	            $('#orgUnitTreeSearchField').keyup(function() {
+	                if (to) {
+	                    clearTimeout(to);
+	                }
+
+	                to = setTimeout(function() {
+	                    var v = $('#orgUnitTreeSearchField').val();
+						if (v.length >= 2) {
+		                    $('#orgUnitTreeHierarchy').jstree(true).search(v);
+		                }
+	                }, 400);
+	            });
+	            
+	            //listeners
+	            $('#orgUnitTreeHierarchy').on('close_node.jstree', function(e, data) {
+	            	if (data.node.parent == '#') {
+	            		$('#orgUnitTreeHierarchy').jstree("close_all");
+	            	}
+	            });
+	            
+	            $("#orgUnitTreeHierarchy").on("select_node.jstree", function(e, data) {
+	            	orgUnitService.loadDescription(data.node.id)
+				});
+	        }
+			
+			this.loadDescription = function(uuid) {
+				$( "#description" ).load( url + "/orgunits/description/" + uuid, function() {
+					descriptionService.init();
+
+					$('.i-checks').iCheck({
+						checkboxClass: 'icheckbox_square-green',
+						radioClass: 'iradio_square-green',
+					});
+				});
+			}
+		}
+		/*]]>*/
+	</script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header(datatables = true, checkbox = true)" />
+<body class="top-navigation">
+	<div id="wrapper">
+	    <div id="page-wrapper" class="gray-bg">
+			<div th:replace="fragments/topbar :: topbar(page = 'roles')" />
+
+	        <div class="wrapper wrapper-content">
+	            <div class="row">
+	                <div class="col-lg-12">
+                        <div class="ibox">
+                            <div class="ibox-title">
+                                <h2><em class="fa fa-check-square"></em> &nbsp; Globale rettigheder</h2>
+                            </div>
+		
+                            <div class="ibox-content">
+                            	<p th:utext="${@cmsMessageBundle.getText('cms.roles.helptext')}"></p>
+                            	<br/>
+								<table id="roleTable" class="table" >
+									<thead>
+										<tr>
+											<th>Global rettighed</th>
+											<th>Navn</th>
+											<th>Beskrivelse</th>
+											<th>IT system</th>
+										</tr>
+									</thead>
+
+									<tfoot style="display: table-row-group">
+									<tr>
+										<td></td>
+										<td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+										<td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+										<td class="input-filter"><input type="text" class="form-control input-sm" style="width: 100%;" placeholder="Søg" /></td>
+									</tr>
+									</tfoot>
+
+									<tbody>
+									</tbody>
+								</table>
+	                        </div>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+	    </div>
+	</div>
+	
+	<div th:replace="fragments/footer :: scripts(datatables = true, checkbox = true)" />
+	
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+		    var url = [[@{/systemadmin}]];
+			var baseUrl = [[@{/}]];
+		+]*/
+		
+		var token = $("meta[name='_csrf']").attr("content");
+		var roleService;
+		$(document).ready(function() {
+			roleService = new RoleService();
+			roleService.init();
+		});
+		
+		function RoleService() {
+			this.init = function() {
+				var table = $('#roleTable').DataTable({
+					"destroy": true,
+					"ajax": {
+						"contentType": "application/json",
+						"url": "/rest/systemadmin/globalroles",
+						"type": "POST",
+						"headers": {
+							"X-CSRF-TOKEN": token
+						},
+						"data": function(d) {
+							return JSON.stringify(d);
+						}
+					},
+					"serverSide": true,
+					"columns": [
+						{
+							"data": "checked",
+							"className": "action-column",
+							"orderable": false,
+							"searchable": false,
+							"render": function (data, type, row, meta) {
+								var checked = data == true ? "checked" : "";
+								return '<input class="i-checks globalroles" data-id=' + row.id + ' type="checkbox" ' + checked + '>';
+							}
+						},
+						{
+							"data": "name"
+						},
+						{
+							"data": "description"
+						},
+						{
+							"data": "itSystem"
+						}
+					],
+					"ordering": true,
+					"order": [ [ 1, "asc" ] ],
+					"info": true,
+					"pageLength": 50,
+					"lengthChange": false,
+					"bSort": false,
+					"dom": "<'row'<'col-sm-12'tr>><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+					"responsive": true,
+					"autoWidth" : false,
+					"language": {
+						"search":	   "Søg",
+						"lengthMenu":   "_MENU_ rettigheder per side",
+						"info":		 "Viser _START_ til _END_ af _TOTAL_ rettigheder",
+						"zeroRecords":  "Ingen data...",
+						"infoEmpty":	"",
+						"infoFiltered": "(ud af _MAX_ rettigheder)",
+						"paginate": {
+							"previous": "Forrige",
+							"next": "Næste"
+						}
+					}
+				});
+
+				$.each($('.input-filter', table.table().footer()), function() {
+					var column = table.column($(this).index());
+
+					$('input', this).on('keyup change', function () {
+						if (column.search() !== this.value) {
+							column.search(this.value).draw();
+						}
+					});
+				});
+				
+				//listeners
+				$('.globalroles').on('ifChecked', function(event){
+					roleService.save(true, $(this).data("id"));
+				});
+				
+				$('.globalroles').on('ifUnchecked', function(event){
+					roleService.save(false, $(this).data("id"));
+				});
+				
+				//assign listeners again on page change
+				$('#roleTable').on('draw.dt', function() {
+					$('.i-checks').iCheck({
+						checkboxClass: 'icheckbox_square-green',
+						radioClass: 'iradio_square-green',
+					});
+
+					$('.globalroles').off('ifChecked');
+					$('.globalroles').off('ifUnchecked');
+
+					$('.globalroles').on('ifChecked', function(event){
+						roleService.save(true, $(this).data("id"));
+					});
+					
+					$('.globalroles').on('ifUnchecked', function(event){
+						roleService.save(false, $(this).data("id"));
+					});
+				});
+			}
+			
+			this.openCreateModal = function() {
+				$("#modalAddRole").modal("show");
+				$("#name").focus();
+			}
+			
+			this.save = function(checked, id) {
+				$.ajax({
+	    			   url: baseUrl + "rest/systemadmin/globalroles/save?id=" + id + "&checked=" + checked,
+	    			   headers: {
+	    			      'X-CSRF-TOKEN': token
+	    			   },
+	    			   type: 'post',
+	    			   
+	    			   success: function(data, textStatus, jQxhr) {
+	    				   toastr.success("Gemt!");
+	    			   },
+	    			   error: function(jQxhr, textStatus, errorThrown) {
+	    					toastr.error("Fejl! Kunne ikke gemme den globale rettighed.");			    				      
+	    			   }
+	    		});
+			}
+		}
+
+        
+
+		/*]]>*/
+	</script>
+</body>
+</html>

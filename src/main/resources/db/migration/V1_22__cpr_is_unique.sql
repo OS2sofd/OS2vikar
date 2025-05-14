@@ -1,0 +1,1 @@
+ALTER TABLE substitute ADD UNIQUE INDEX cpr_unique_key (cpr);

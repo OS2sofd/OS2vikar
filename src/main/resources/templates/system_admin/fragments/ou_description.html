@@ -1,0 +1,723 @@
+<th:block th:fragment="ouDescription" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<div class="col-lg-12">
+		<h3>Den valgte enhed</h3>
+	    <form class="form-horizontal">
+			<fieldset>
+				<div class="form-group row">
+					<label class="col-lg-2 control-label">Navn</label>
+					<div class="col-lg-10">
+						<input th:field="${orgUnit.name}" class="form-control" disabled="disabled"/>
+					</div>
+				</div>
+			</fieldset>
+			
+			<fieldset>
+				<div class="form-group row">
+					<label class="col-lg-2 control-label">UUID</label>
+					<div class="col-lg-10">
+						<input th:field="${orgUnit.uuid}" class="form-control" disabled="disabled"/>
+					</div>
+				</div>
+			</fieldset>
+	        
+	        <fieldset>
+				<div class="form-group row">
+					<label class="col-lg-2 control-label">Kan have vikarer?</label>
+					<div class="col-lg-10">
+						<input type="checkbox" id="substitutes" class="form-control i-checks" th:checked="${orgUnit.canHaveSubstitutes}"/>
+					</div>
+				</div>
+			</fieldset>
+			
+			<fieldset class="maxWorkingDays">
+				<div class="form-group row">
+					<label class="col-lg-2 control-label">Maksimal arbejdstid for vikar (dage)</label>
+					<div class="col-lg-10">
+						<input th:field="${orgUnit.maxSubstituteWorkingDays}" class="form-control" type="number"/>
+					</div>
+				</div>
+			</fieldset>
+
+			<fieldset class="maxWorkingDays">
+				<div class="form-group row">
+					<label class="col-lg-2 control-label">Standard arbejdstid for vikar (dage)</label>
+					<div class="col-lg-10">
+						<input th:field="${orgUnit.defaultSubstituteWorkingDays}" class="form-control" type="number"/>
+					</div>
+				</div>
+			</fieldset>
+		</form>
+		
+		<br/>
+                            	
+        <div class="tabs-container maxWorkingDays">
+          <ul class="nav nav-tabs" role="tablist">
+              <li><a class="nav-link active" data-toggle="tab" href="#tab-1">Arbejdstitler</a></li>
+              <!-- TODO: dette er død kode som hører til den gamle ad-hoc rettighedsmodel
+              <li th:if="${@OS2VikarConfiguration.syncADGroups.enabled == false}"><a class="nav-link" data-toggle="tab" href="#tab-2">Rettigheder</a></li>
+               -->
+              <li th:if="${@OS2VikarConfiguration.syncADGroups.enabled}"><a class="nav-link" data-toggle="tab" href="#tab-3">AD Grupper</a></li>
+              <li><a class="nav-link" data-toggle="tab" href="#tab-4">IT-systemer</a></li>
+			  <li th:if="${@OS2VikarConfiguration.rc.allowAutomaticUserRoles}"><a class="nav-link" data-toggle="tab" href="#tab-5">Rolletildelinger</a></li>
+          </ul>
+          
+          <div class="tab-content">
+              <div role="tabpanel" id="tab-1" class="tab-pane active">
+                  <div class="panel-body">
+				    <div th:utext="${@cmsMessageBundle.getText('cms.orgunits.titles.helptext')}"></div>
+				    <br/><br/>
+					<button class="btn btn-primary" onclick="titleService.openCreateModal()">Tilføj arbejdstitel</button>
+                    <br/><br/>
+	                <table class="table" id="titleTable">
+						<thead>
+							<tr>
+								<th>Titel</th>
+								<th class="actionColumn">Handlinger</th>
+							</tr>
+						</thead>
+
+						<tbody>
+							<tr th:each="title : ${titles}">
+								<td th:text="${title.title}" />
+								<td>
+									<i th:unless="${title.global}" class="fa fa-times" aria-hidden="true" th:onClick="'titleService.deleteTitle(' + ${title.id} + ')'" title="Slet lokal arbejdstitel"></i>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+                  </div>
+              </div>
+              
+              <!--
+              <div th:if="${@OS2VikarConfiguration.syncADGroups.enabled == false}" role="tabpanel" id="tab-2" class="tab-pane">
+                  <div class="panel-body">
+				    <div th:utext="${@cmsMessageBundle.getText('cms.orgunits.roles.helptext')}"></div>
+	                <br/><br/>
+	                <table class="table" id="roleTable">
+						<thead>
+							<tr>
+								<th>Tildelt</th>
+								<th>Navn</th>
+								<th>Beskrivelse</th>
+								<th>IT system</th>
+							</tr>
+						</thead>
+					
+						<tbody>
+							<tr th:each="role : ${roles}">
+								<td class="actionColumn">
+									<input class="i-checks roles" th:attr="data-id=${role.id}" type="checkbox" th:checked="${role.checked}" th:disabled="${role.global}">
+								</td>
+								<td th:text="${role.name}" />
+								<td th:text="${role.description}" />
+								<td th:text="${role.itSystem}" />
+							</tr>
+						</tbody>
+					</table>
+                  </div>
+              </div>
+               -->
+
+              <div th:if="${@OS2VikarConfiguration.syncADGroups.enabled}" role="tabpanel" id="tab-3" class="tab-pane">
+                  <div class="panel-body">
+				    <div th:utext="${@cmsMessageBundle.getText('cms.orgunits.ad_groups.helptext')}" style="margin-left: 15px;"></div>
+	                <br/><br/>
+	                <table class="table" id="groupTable">
+						<thead>
+							<tr>
+								<th>Tildelt</th>
+								<th>Navn</th>
+							</tr>
+						</thead>
+					
+						<tbody>
+							<tr th:each="group : ${adGroups}">
+								<td class="actionColumn">
+									<input class="i-checks adGroups" th:attr="data-guid=${group.guid}" type="checkbox" th:checked="${group.checked}">
+								</td>
+								<td th:text="${group.name}" />
+							</tr>
+						</tbody>
+					</table>
+                  </div>
+              </div>
+
+			  <div role="tabpanel" id="tab-4" class="tab-pane">
+				  <div class="panel-body">
+					  <div th:utext="${@cmsMessageBundle.getText('cms.orgunits.it_systems.helptext')}" style="margin-left: 15px;"></div>
+					  <br/><br/>
+					  <table class="table" id="systemTable">
+						  <thead>
+							  <tr>
+								  <th>Tildelt</th>
+								  <th>Navn</th>
+							  </tr>
+						  </thead>
+
+						  <tbody>
+							  <tr th:each="system : ${systems}">
+								  <td class="actionColumn">
+									  <input class="i-checks systems" th:attr="data-identifier=${system.identifier}, data-name=${system.name}" type="checkbox" th:checked="${system.checked}">
+								  </td>
+								  <td th:text="${system.name}"></td>
+							  </tr>
+						  </tbody>
+					  </table>
+				  </div>
+			  </div>
+
+			  <div th:if="${@OS2VikarConfiguration.rc.allowAutomaticUserRoles}" role="tabpanel" id="tab-5" class="tab-pane">
+				  <div class="panel-body">
+					  <fieldset>
+						  <div>
+							  <p th:utext="${@cmsMessageBundle.getText('cms.orgunits.userroles.helptext')}"></p>
+
+							  <table class="table" id="userRoleTable">
+								  <thead>
+								  <tr>
+									  <th>Tildelt</th>
+									  <th>Navn</th>
+									  <th>Beskrivelse</th>
+									  <th>IT system</th>
+								  </tr>
+								  </thead>
+
+								  <tbody>
+								  <tr th:each="userRole : ${userRoles}">
+									  <td class="actionColumn">
+										  <input class="i-checks userRoles" th:id="'userRole_' + ${userRole.id}" th:attr="data-id=${userRole.id}" type="checkbox" th:checked="${userRole.checked}">
+									  </td>
+									  <td th:text="${userRole.name}"></td>
+									  <td th:text="${userRole.description}" />
+									  <td th:text="${userRole.itSystem}" />
+								  </tr>
+								  </tbody>
+							  </table>
+						  </div>
+					  </fieldset>
+				  </div>
+			  </div>
+          </div>
+      </div>
+	</div>
+</th:block>
+
+<th:block th:fragment="descriptionScript" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+
+		/*[+
+			var baseUrl = [[@{/}]];
+		+]*/
+		
+		var descriptionService, roleService, titleService, adGroupService, itSystemService, userRoleService;
+		$(document).ready(function() {
+			descriptionService = new DescriptionService();
+			roleService = new RoleService();
+			titleService = new TitleService();
+			adGroupService = new ADGroupService();
+			itSystemService = new ITSystemService();
+			userRoleService = new UserRoleService();
+		});
+		
+		function DescriptionService() {
+			this.init = function() {
+				if ($("#substitutes").prop("checked")) {
+					$(".maxWorkingDays").show();
+				} else {
+					$(".maxWorkingDays").hide();
+				}
+				
+				$('#substitutes').on('ifChecked', function(event){
+					descriptionService.setCanHaveSubstitutes(true);
+					$(".maxWorkingDays").show();
+				});
+				
+				$('#substitutes').on('ifUnchecked', function(event){
+					descriptionService.setCanHaveSubstitutes(false);
+					$(".maxWorkingDays").hide();
+				});
+				
+				$("#maxSubstituteWorkingDays").on('blur', function(event) {
+					descriptionService.setMaxWorkingDays($(this).val());
+				});
+				$("#defaultSubstituteWorkingDays").on('blur', function(event) {
+					descriptionService.setDefaultWorkingDays($(this).val());
+				});
+				
+				roleService.init();
+				titleService.init();
+				adGroupService.init();
+				itSystemService.init();
+				userRoleService.init();
+			}
+			
+			this.setCanHaveSubstitutes = function(checked) {
+				$.ajax({
+	    			   url: baseUrl + "rest/systemadmin/orgunits/" + $("#uuid").val() + "/substitutes?allowed=" + checked,
+	    			   headers: {
+	    			      'X-CSRF-TOKEN': token
+	    			   },
+	    			   type: 'post',
+	    			   
+	    			   success: function(data, textStatus, jQxhr) {
+	    				   var badge = " <span class=\"badge badge-primary\">Vikarer</span>"
+	    				   var node = $('#orgUnitTreeHierarchy').jstree(true).get_node($("#uuid").val());
+	    				   var text = $('#orgUnitTreeHierarchy').jstree(true).get_text(node);
+	    				   
+	    				   if (checked) {
+	    					   var newText = text + badge
+	    					   $('#orgUnitTreeHierarchy').jstree(true).set_text(node, newText);
+	    				   } else {
+	    					   var newText = text.replace(badge, "");
+	    					   $('#orgUnitTreeHierarchy').jstree(true).set_text(node, newText);
+	    				   }
+	    				   
+	    				   orgUnitService.loadDescription($("#uuid").val());
+	    				   
+	    				   toastr.success("Gemt!");
+	    			   },
+	    			   error: function(jQxhr, textStatus, errorThrown) {
+	    					toastr.error("Fejl! Kunne ikke gemme om enheden må have vikarer");			    				      
+	    			   }
+	    		});
+			}
+			
+			this.setMaxWorkingDays = function(days) {
+				$.ajax({
+					   url: baseUrl + "rest/systemadmin/orgunits/" + $("#uuid").val() + "/maxworkingdays?days=" + days,
+	    			   headers: {
+	    			      'X-CSRF-TOKEN': token
+	    			   },
+	    			   type: 'post',
+	    			   
+	    			   success: function(data, textStatus, jQxhr) {
+	    				   toastr.success("Gemt!");
+	    			   },
+	    			   error: function(jQxhr, textStatus, errorThrown) {
+	    					if (jQxhr.responseText == null) {
+	    			   			toastr.error("Fejl! Kunne ikke gemme standard antal arbejdsdage");
+	    			   		} else {
+	    			   			toastr.error(jQxhr.responseText);
+	    			   		}
+	    			   }
+	    		});
+			}
+
+			this.setDefaultWorkingDays = function(days) {
+				$.ajax({
+					   url: baseUrl + "rest/systemadmin/orgunits/" + $("#uuid").val() + "/defaultworkingdays?days=" + days,
+	    			   headers: {
+	    			      'X-CSRF-TOKEN': token
+	    			   },
+	    			   type: 'post',
+
+	    			   success: function(data, textStatus, jQxhr) {
+	    				   toastr.success("Gemt!");
+	    			   },
+	    			   error: function(jQxhr, textStatus, errorThrown) {
+	    			   		if (jQxhr.responseText == null) {
+	    			   			toastr.error("Fejl! Kunne ikke gemme standard antal arbejdsdage");
+	    			   		} else {
+	    			   			toastr.error(jQxhr.responseText);
+	    			   		}
+	    			   }
+	    		});
+			}
+		}
+		
+		function RoleService() {
+			this.init = function() {
+				var table = $('#roleTable').DataTable({
+					"columns": [
+					    { "orderable": false,
+						  "searchable": false},
+						  null,
+						  null,
+						  null
+					  ],
+					"destroy" : true,
+					"pageLength" : 25,
+					"order": [ 1, 'asc' ],
+					"responsive" : true,
+					"autoWidth" : false,
+					"language" : {
+						"search" : "Søg",
+						"lengthMenu" : "_MENU_ rettigheder per side",
+						"info" : "Viser _START_ til _END_ af _TOTAL_ rettigheder",
+						"zeroRecords" : "Ingen data...",
+						"infoEmpty" : "",
+						"infoFiltered" : "(ud af _MAX_ rettigheder)",
+						"paginate" : {
+							"previous" : "Forrige",
+							"next" : "Næste"
+						}
+					}
+				});	
+				
+				$('.roles').on('ifChecked', function(event){
+					roleService.save(true, $(this).data("id"));
+				});
+				
+				$('.roles').on('ifUnchecked', function(event){
+					roleService.save(false, $(this).data("id"));
+				});
+				
+				// assign listeners again on page change
+				$('#roleTable').on('draw.dt', function() {
+					$('.i-checks').iCheck({
+						checkboxClass: 'icheckbox_square-green',
+						radioClass: 'iradio_square-green',
+					});
+
+					$('.roles').off('ifChecked');
+					$('.roles').off('ifUnchecked');
+
+					$('.roles').on('ifChecked', function(event){
+						roleService.save(true, $(this).data("id"));
+					});
+
+					$('.roles').on('ifUnchecked', function(event){
+						roleService.save(false, $(this).data("id"));
+					});
+				});
+			}
+			
+			this.save = function(checked, id) {
+				$.ajax({
+	    			   url: baseUrl + "rest/systemadmin/orgunits/" + $("#uuid").val() + "/localroles/save?checked=" + checked + "&id=" + id,
+	    			   headers: {
+	    			      'X-CSRF-TOKEN': token
+	    			   },
+	    			   type: 'post',
+	    			   
+	    			   success: function(data, textStatus, jQxhr) {
+	    				   toastr.success("Gemt!")
+	    			   },
+	    			   error: function(jQxhr, textStatus, errorThrown) {
+	    					toastr.error("Fejl! Kunne ikke gemme den globale rettighed.");			    				      
+	    			   }
+	    		});
+			}
+		}
+		
+		function TitleService() {
+			this.init = function() {
+				var table = $('#titleTable').DataTable({
+					"columns": [
+						null,
+					    { "orderable": false,
+						  "searchable": false}
+					  ],
+					"destroy" : true,
+					"pageLength" : 25,
+					"order": [ 0, 'asc' ],
+					"responsive" : true,
+					"autoWidth" : false,
+					"language" : {
+						"search" : "Søg",
+						"lengthMenu" : "_MENU_ arbejdstitler per side",
+						"info" : "Viser _START_ til _END_ af _TOTAL_ arbejdstitler",
+						"zeroRecords" : "Ingen data...",
+						"infoEmpty" : "",
+						"infoFiltered" : "(ud af _MAX_ arbejdstitler)",
+						"paginate" : {
+							"previous" : "Forrige",
+							"next" : "Næste"
+						}
+					}
+				});	
+			}
+			
+			this.deleteTitle = function(id) {
+				swal({
+                    html: true,
+                    title : 'Slet lokal arbejdstitel',
+                    text : 'Er du sikker på at du vil slette denne lokale arbejdstitel?',
+                    type : "warning",
+                    showCancelButton : true,
+                    confirmButtonColor : "#DD6B55",
+                    confirmButtonText : 'Ja',
+                    cancelButtonText : 'Nej',
+                    closeOnConfirm : true,
+                    closeOnCancel : true
+	            },
+            	function (isConfirm) {
+                    if (isConfirm) {
+						$.ajax({
+			    			   url: baseUrl + "rest/systemadmin/localtitles/" + id + "/delete",
+			    			   headers: {
+			    			      'X-CSRF-TOKEN': token
+			    			   },
+			    			   type: 'post',
+			    			   
+			    			   success: function(data, textStatus, jQxhr) {
+			    				   orgUnitService.loadDescription($("#uuid").val())
+			    			   },
+			    			   error: function(jQxhr, textStatus, errorThrown) {
+			    					toastr.error("Fejl! Kunne ikke slette den lokale arbejdstitel.");			    				      
+			    			   }
+			    		});
+                    }
+	            });
+			}
+			
+			this.openCreateModal = function() {
+				$("#modalAddTitle").modal("show");
+				$("#name").focus();
+			}
+			
+			this.save = function() {
+				$.ajax({
+	    			   url: baseUrl + "rest/systemadmin/orgunits/" + $("#uuid").val() + "/localtitles/save?title=" + $("#title").val(),
+	    			   headers: {
+	    			      'X-CSRF-TOKEN': token
+	    			   },
+	    			   type: 'post',
+	    			   
+	    			   success: function(data, textStatus, jQxhr) {
+	    				   $("#modalAddTitle").modal("hide");
+	    				   orgUnitService.loadDescription($("#uuid").val())
+	    			   },
+	    			   error: function(jQxhr, textStatus, errorThrown) {
+	    					toastr.error("Fejl! Kunne ikke gemme den globale arbejdstitel.");			    				      
+	    			   }
+	    		});
+			}
+		}
+		
+		function ADGroupService() {
+			this.init = function() {
+				var table = $('#groupTable').DataTable({
+					"columns": [
+					    { "orderable": false,
+						  "searchable": false},
+						  null
+					  ],
+					"destroy" : true,
+					"pageLength" : 25,
+					"order": [ 1, 'asc' ],
+					"responsive" : true,
+					"autoWidth" : false,
+					"language" : {
+						"search" : "Søg",
+						"lengthMenu" : "_MENU_ grupper per side",
+						"info" : "Viser _START_ til _END_ af _TOTAL_ grupper",
+						"zeroRecords" : "Ingen data...",
+						"infoEmpty" : "",
+						"infoFiltered" : "(ud af _MAX_ grupper)",
+						"paginate" : {
+							"previous" : "Forrige",
+							"next" : "Næste"
+						}
+					}
+				});	
+				
+				$('.adGroups').on('ifChecked', function(event){
+					adGroupService.save(true, $(this).data("guid"));
+				});
+				
+				$('.adGroups').on('ifUnchecked', function(event){
+					adGroupService.save(false, $(this).data("guid"));
+				});
+
+				// assign listeners again on page change
+				$('#groupTable').on('draw.dt', function() {
+					$('.i-checks').iCheck({
+						checkboxClass: 'icheckbox_square-green',
+						radioClass: 'iradio_square-green',
+					});
+
+					$('.adGroups').off('ifChecked');
+					$('.adGroups').off('ifUnchecked');
+
+					$('.adGroups').on('ifChecked', function(event){
+						adGroupService.save(true, $(this).data("guid"));
+					});
+
+					$('.adGroups').on('ifUnchecked', function(event){
+						adGroupService.save(false, $(this).data("guid"));
+					});
+				});
+			}
+			
+			this.save = function(checked, id) {
+				$.ajax({
+	    			   url: baseUrl + "rest/systemadmin/orgunits/" + $("#uuid").val() + "/adgroups/save?checked=" + checked + "&guid=" + id,
+	    			   headers: {
+	    			      'X-CSRF-TOKEN': token
+	    			   },
+	    			   type: 'post',
+	    			   
+	    			   success: function(data, textStatus, jQxhr) {
+	    				   toastr.success("Gemt!")
+	    			   },
+	    			   error: function(jQxhr, textStatus, errorThrown) {
+	    					toastr.error("Fejl! Kunne ikke gemme Active Directory gruppen.");			    				      
+	    			   }
+	    		});
+			}
+		}
+
+		function UserRoleService() {
+			this.init = function() {
+				var table = $('#userRoleTable').DataTable({
+					"columns": [
+					    { "orderable": false,
+						  "searchable": false},
+						  null,
+						  null,
+						  null
+					  ],
+					"destroy" : true,
+					"pageLength" : 25,
+					"order": [ 1, 'asc' ],
+					"responsive" : true,
+					"autoWidth" : false,
+					"language" : {
+						"search" : "Søg",
+						"lengthMenu" : "_MENU_ jobfunktionsroller per side",
+						"info" : "Viser _START_ til _END_ af _TOTAL_ jobfunktionsroller",
+						"zeroRecords" : "Ingen data...",
+						"infoEmpty" : "",
+						"infoFiltered" : "(ud af _MAX_ jobfunktionsroller)",
+						"paginate" : {
+							"previous" : "Forrige",
+							"next" : "Næste"
+						}
+					}
+				});
+
+				$('.userRoles').on('ifChecked', function(event){
+					userRoleService.save(true, $(this).data("id"));
+				});
+
+				$('.userRoles').on('ifUnchecked', function(event){
+					userRoleService.save(false, $(this).data("id"));
+				});
+
+				// assign listeners again on page change
+				$('#userRoleTable').on('draw.dt', function() {
+					$('.i-checks').iCheck({
+						checkboxClass: 'icheckbox_square-green',
+						radioClass: 'iradio_square-green',
+					});
+
+					$('.userRoles').off('ifChecked');
+					$('.userRoles').off('ifUnchecked');
+
+					$('.userRoles').on('ifChecked', function(event){
+						userRoleService.save(true, $(this).data("id"));
+					});
+
+					$('.userRoles').on('ifUnchecked', function(event){
+						userRoleService.save(false, $(this).data("id"));
+					});
+				});
+			}
+
+			this.save = function(checked, id) {
+				$.ajax({
+	    			   url: baseUrl + "rest/systemadmin/orgunits/" + $("#uuid").val() + "/userroles/save?checked=" + checked + "&id=" + id,
+	    			   headers: {
+	    			      'X-CSRF-TOKEN': token
+	    			   },
+	    			   type: 'post',
+
+	    			   success: function(data, textStatus, jQxhr) {
+	    				   toastr.success("Gemt!")
+	    			   },
+	    			   error: function(jQxhr, textStatus, errorThrown) {
+	    					toastr.error("Fejl! Kunne ikke gemme jobfunktionsrollen.");
+	    			   }
+	    		});
+			}
+		}
+
+		function ITSystemService() {
+			this.init = function() {
+				var table = $('#systemTable').DataTable({
+					"columns": [
+					    { "orderable": false,
+						  "searchable": false},
+						  null
+					],
+					"destroy" : true,
+					"pageLength" : 25,
+					"order": [ 1, 'asc' ],
+					"responsive" : true,
+					"autoWidth" : false,
+					"language" : {
+						"search" : "Søg",
+						"lengthMenu" : "_MENU_ IT-systemer per side",
+						"info" : "Viser _START_ til _END_ af _TOTAL_ IT-systemer",
+						"zeroRecords" : "Ingen data...",
+						"infoEmpty" : "",
+						"infoFiltered" : "(ud af _MAX_ IT-systemer)",
+						"paginate" : {
+							"previous" : "Forrige",
+							"next" : "Næste"
+						}
+					}
+				});
+
+				$('.systems').on('ifChecked', function(event){
+					itSystemService.save(true, $(this).data("identifier"), $(this).data("name"));
+				});
+
+				$('.systems').on('ifUnchecked', function(event){
+					itSystemService.save(false, $(this).data("identifier"), $(this).data("name"));
+				});
+
+				// assign listeners again on page change
+				$('#systemTable').on('draw.dt', function() {
+					$('.i-checks').iCheck({
+						checkboxClass: 'icheckbox_square-green',
+						radioClass: 'iradio_square-green',
+					});
+
+					$('.systems').off('ifChecked');
+					$('.systems').off('ifUnchecked');
+
+					$('.systems').on('ifChecked', function(event){
+						itSystemService.save(true, $(this).data("identifier"), $(this).data("name"));
+					});
+
+					$('.systems').on('ifUnchecked', function(event){
+						itSystemService.save(false, $(this).data("identifier"), $(this).data("name"));
+					});
+				});
+			}
+
+			this.save = function(checked, id, name) {
+				$.ajax({
+				   url: baseUrl + "rest/systemadmin/orgunits/" + $("#uuid").val() + "/itsystems/save?checked=" + checked + "&identifier=" + id,
+				   headers: {
+					  'X-CSRF-TOKEN': token
+				   },
+				   type: 'post',
+
+				   success: function(data, textStatus, jQxhr) {
+					   toastr.success("Gemt!")
+					   var badge = " <span class=\"badge badge-plain\">" + name + "</span>"
+					   var node = $('#orgUnitTreeHierarchy').jstree(true).get_node($("#uuid").val());
+					   var text = $('#orgUnitTreeHierarchy').jstree(true).get_text(node);
+
+					   if (checked) {
+						   var newText = text + badge
+						   $('#orgUnitTreeHierarchy').jstree(true).set_text(node, newText);
+					   } else {
+						   var newText = text.replace(badge, "");
+						   $('#orgUnitTreeHierarchy').jstree(true).set_text(node, newText);
+					   }
+				   },
+				   error: function(jQxhr, textStatus, errorThrown) {
+						toastr.error("Fejl! Kunne ikke gemme tilknytning til IT-system.");
+				   }
+	    		});
+			}
+		}
+
+		/*]]>*/
+	</script>
+</th:block>
