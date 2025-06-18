@@ -14,3 +14,4 @@
 2024-08-01 - version 1.8.0 - support for CyberArk (Privileged access management)
 2025-01-26 - version 1.9.0 - understøtter udfyldelse af autorisationskode på vikarer
 2025-03-04 - version 1.9.2 - fix fejl i autorisationskoder
+2025-06-18 - version 2.0.0 - styring af aktivering/deaktivering af AD konti følger start/stop på arbejdssteder

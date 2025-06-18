@@ -203,6 +203,41 @@ public class SubstituteService {
 	}
 
 	@Transactional
+	public void activate() {
+		List<Substitute> substitutes = substituteDao.findByDisabledInAdTrue();
+		
+		for (Substitute substitute : substitutes) {
+			if (substitute.isUsernameFromSofd() || !StringUtils.hasLength(substitute.getUsername())) {
+				continue;
+			}
+
+			// e.g. if disableDelay = 1
+			// if today is 2025-06-18, then any workplace with a stopDate of 2025-06-16 or earlier will be counted
+			int stoppedWorkplaces = (int) substitute.getWorkplaces().stream()
+					.filter(w -> w.getStopDate().isBefore(LocalDate.now().minusDays(configuration.getDisableDelay())))
+					.count();
+
+			// e.g. if workplaceActiveTresholdDays = 2
+			// if today is 2025-06-18, then any workplace with a startDate of 2025-06-21 or later will be counted
+			int notYetActiveWorkplaces = (int) substitute.getWorkplaces().stream()
+					.filter(w -> w.getStartDate().isAfter(LocalDate.now().plusDays(configuration.getWorkplaceActiveTresholdDays())))
+					.count();
+
+			if (substitute.getWorkplaces().size() > (stoppedWorkplaces + notYetActiveWorkplaces)) {
+				log.info("Enabling AD account for substitute: " + substitute.getUsername());
+				auditLogService.logSystem("Vikar enabled i AD grundet kommende arbejssted", "Vikaren har kommende arbejdssteder", substitute);
+
+				ADResponse result = webSocketService.enableADAccount(substitute.getUsername());
+				if (result.isSuccess()) {
+					substitute.setDisabledInAd(false);
+				}
+
+				substituteDao.save(substitute);
+			}
+		}
+	}
+	
+	@Transactional
 	public void cleanUp() {
 		log.info("Started substitute clean up task");
 
@@ -273,8 +308,19 @@ public class SubstituteService {
 				continue;
 			}
 
-			int stoppedWorkplaces = (int) substitute.getWorkplaces().stream().filter(w -> w.getStopDate().isBefore(LocalDate.now().minusDays(configuration.getDisableDelay()))).count();
-			if (substitute.getWorkplaces().isEmpty() || stoppedWorkplaces == substitute.getWorkplaces().size()) {
+			// e.g. if disableDelay = 1
+			// if today is 2025-06-18, then any workplace with a stopDate of 2025-06-16 or earlier will be counted
+			int stoppedWorkplaces = (int) substitute.getWorkplaces().stream()
+					.filter(w -> w.getStopDate().isBefore(LocalDate.now().minusDays(configuration.getDisableDelay())))
+					.count();
+
+			// e.g. if workplaceActiveTresholdDays = 2
+			// if today is 2025-06-18, then any workplace with a startDate of 2025-06-21 or later will be counted
+			int notYetActiveWorkplaces = (int) substitute.getWorkplaces().stream()
+					.filter(w -> w.getStartDate().isAfter(LocalDate.now().plusDays(configuration.getWorkplaceActiveTresholdDays())))
+					.count();
+
+			if (substitute.getWorkplaces().isEmpty() || stoppedWorkplaces == (substitute.getWorkplaces().size() - notYetActiveWorkplaces)) {
 				log.info("Disabling AD account for substitute: " + substitute.getUsername());
 				auditLogService.logSystem("Vikar disabled i AD grundet inaktivitet", "Vikaren har ingen aktive arbejdssteder", substitute);
 

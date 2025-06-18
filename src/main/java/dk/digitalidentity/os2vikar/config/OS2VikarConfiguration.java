@@ -38,9 +38,6 @@ public class OS2VikarConfiguration {
 	private boolean employeeSignatureEnabled = false;
 	private int defaultMaxDays = 10;
 	private boolean enableAuthorizationCodes = false;
-	
-	// how many days after the workplace ends, do we disable the AD account
-	private int disableDelay = 1;
 
 	private boolean passwordChangeAllowed = false;
 	private boolean passwordChangeAdminOnlyAllowed = false;
@@ -52,6 +49,12 @@ public class OS2VikarConfiguration {
 
 	// how long do we keep closed workplaces in the UI
 	private long substituteWorkplaceVisibilityTreshold = 3;
+
+	// how many days after the workplace ends, do we disable the AD account
+	private int disableDelay = 1;
+
+	// how far into the future do we look for new workplaces, when deciding if an active AD account should be disalbed
+	private long workplaceActiveTresholdDays = 2;
 	
 	private Cpr cpr = new Cpr();
 	private Api api = new Api();

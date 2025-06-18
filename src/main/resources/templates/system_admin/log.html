@@ -4,7 +4,7 @@
 <body class="top-navigation">
 	<div id="wrapper">
 	    <div id="page-wrapper" class="gray-bg">
-			<div th:replace="fragments/topbar :: topbar(page = 'log')" />
+			<div th:replace="fragments/topbar :: topbar(page = 'log')"></div>
 
 	        <div class="wrapper wrapper-content">
 	            <div class="row">
@@ -12,6 +12,10 @@
                         <div class="ibox">
                             <div class="ibox-title">
                                 <h2><em class="fa fa-archive"></em> &nbsp; Log</h2>
+                                
+                                <div class="ibox-tools" sec:authorize="hasRole('ROLE_SYSTEM_ADMIN')">
+	                                <a class="btn btn-primary" th:href="@{/substituteadmin/download/statistic}">Download vikarstatistik</a>
+	                            </div>
                             </div>
 		
                             <div class="ibox-content">

@@ -94,6 +94,30 @@
 			<version>1.18.32</version>
 		</dependency>
 
+                <dependency>
+                        <groupId>org.apache.poi</groupId>
+                        <artifactId>poi</artifactId>
+                        <version>5.2.5</version>
+                </dependency>
+
+                <dependency>
+                        <groupId>org.apache.poi</groupId>
+                        <artifactId>poi-ooxml</artifactId>
+                        <version>5.2.5</version>
+                        <exclusions>
+                                <exclusion>
+                                        <groupId>stax</groupId>
+                                        <artifactId>stax-api</artifactId>
+                                </exclusion>
+                        </exclusions>
+                </dependency>
+
+                <dependency>
+                        <groupId>org.apache.poi</groupId>
+                        <artifactId>poi-ooxml-full</artifactId>
+                        <version>5.2.5</version>
+                </dependency>
+
 		<dependency>
 			<groupId>dk.digitalidentity</groupId>
 			<artifactId>saml-module</artifactId>

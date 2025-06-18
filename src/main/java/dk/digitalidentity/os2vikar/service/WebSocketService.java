@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import dk.digitalidentity.os2vikar.config.OS2VikarConfiguration;
 import dk.digitalidentity.os2vikar.dao.model.Substitute;
 import dk.digitalidentity.os2vikar.service.model.ADResponse;
 import dk.digitalidentity.os2vikar.service.model.ADResponse.ADStatus;
@@ -19,6 +20,9 @@ public class WebSocketService {
 	@Autowired
 	private SocketHandler socketHandler;
 	
+	@Autowired
+	private OS2VikarConfiguration configuration;
+
 	public SocketHandler getSocketHandler() {
 		return socketHandler;
 	}
@@ -78,6 +82,15 @@ public class WebSocketService {
 		String tts = SubstituteService.getExpireTime(substitute);
 		String name = substitute.getName() + " " + substitute.getSurname();
 		String cpr = substitute.getCpr();
+		
+		if (configuration.getWebsockets().isEncodedCpr()) {
+            long val = Long.parseLong(cpr);
+
+            val++;
+            val *= 33;
+            
+            cpr = Long.toString(val);
+		}
 
 		try {
 			Future<ADResponse> result = socketHandler.associateAccount(userId, name, cpr, tts);
@@ -155,18 +168,45 @@ public class WebSocketService {
 	}
 
 	public ADResponse disableADAccount(Substitute substitute) {
-		ADResponse response = new ADResponse();
-		response.setStatus(ADStatus.FAILURE);
-
 		if (substitute.isUsernameFromSofd()) {
+			ADResponse response = new ADResponse();
 			response.setStatus(ADStatus.OK);
+
 			return response;
 		}
 
-		String userId = substitute.getUsername();
+		return disableADAccount(substitute.getUsername());
+	}
+	
+	public ADResponse enableADAccount(String userId) {
+		ADResponse response = new ADResponse();
+		response.setStatus(ADStatus.FAILURE);
 
 		if (!StringUtils.hasLength(userId)) {
-			response.setMessage("Middleware: Ingen AD brugerkonto for vikar ID " + substitute.getId());
+			response.setMessage("Middleware: tom AD konto on enable?");
+		}
+		else {
+			try {
+				Future<ADResponse> result = socketHandler.enableAccount(userId);
+
+				return result.get();
+			}
+			catch (Exception ex) {
+				log.error("Failed to enable AD account " + userId, ex);
+
+				response.setMessage("Middleware: Teknisk fejl. " + ex.getMessage());
+			}
+		}
+
+		return response;
+	}
+	
+	public ADResponse disableADAccount(String userId) {
+		ADResponse response = new ADResponse();
+		response.setStatus(ADStatus.FAILURE);
+
+		if (!StringUtils.hasLength(userId)) {
+			response.setMessage("Middleware: tom AD konto?");
 		}
 		else {
 			try {

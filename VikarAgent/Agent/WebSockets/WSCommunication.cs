@@ -8,7 +8,7 @@ namespace OS2Vikar
 {
     public class WSCommunication
     {
-        private static string VERSION = "1.9.2";
+        private static string VERSION = "2.0.0";
 
         private WebSocket socket;
         private ADStub adStub;
@@ -115,6 +115,11 @@ namespace OS2Vikar
                                 Reply((string)message.transactionUuid, (string)message.command, (string)message.target, deleteAccountResult.Success, deleteAccountResult.Message);
                                 break;
 
+                            case "ENABLE_ACCOUNT":
+                                var enableAccountResult = adStub.EnableAccount((string)message.target);
+                                Reply((string)message.transactionUuid, (string)message.command, (string)message.target, enableAccountResult.Success, enableAccountResult.Message);
+                                break;
+
                             case "DISABLE_ACCOUNT":
                                 var disableAccountResult = adStub.DisableAccount((string)message.target);
                                 Reply((string)message.transactionUuid, (string)message.command, (string)message.target, disableAccountResult.Success, disableAccountResult.Message);
@@ -124,10 +129,12 @@ namespace OS2Vikar
                                 var employeeSignatureResult = adStub.AddToEmployeeSignatureGroup((string)message.target);
                                 Reply((string)message.transactionUuid, (string)message.command, (string)message.target, employeeSignatureResult.Success, employeeSignatureResult.Message);
                                 break;
+
                             case "AD_GROUPS_SYNC":
                                 var adGroupSyncResult = adStub.SyncADGroups((string)message.target, (string)message.payload);
                                 Reply((string)message.transactionUuid, (string)message.command, (string)message.target, adGroupSyncResult.Success, adGroupSyncResult.Message);
                                 break;
+
                             case "UNLOCK_ACCOUNT":
                                 var unlockAccountResponse = adStub.UnlockAccount((string)message.target);
                                 Reply((string)message.transactionUuid, (string)message.command, (string)message.target, unlockAccountResponse.Success, unlockAccountResponse.Message);
@@ -180,6 +187,7 @@ namespace OS2Vikar
                 case "ASSOCIATE_ACCOUNT":
                 case "SET_PASSWORD":
                 case "DELETE_ACCOUNT":
+                case "ENABLE_ACCOUNT":
                 case "DISABLE_ACCOUNT":
                 case "EMPLOYEE_SIGNATURE":
                 case "SET_AUTHORIZATION_CODE":

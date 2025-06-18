@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -65,6 +66,7 @@ import dk.digitalidentity.os2vikar.service.OrgUnitService;
 import dk.digitalidentity.os2vikar.service.PasswordChangeQueueService;
 import dk.digitalidentity.os2vikar.service.PasswordService;
 import dk.digitalidentity.os2vikar.service.SofdService;
+import dk.digitalidentity.os2vikar.service.StatisticService;
 import dk.digitalidentity.os2vikar.service.SubstituteService;
 import dk.digitalidentity.os2vikar.service.WebSocketService;
 import dk.digitalidentity.os2vikar.service.dto.CprLookupDto;
@@ -124,6 +126,9 @@ public class SubstituteAdminRestController {
 
 	@Autowired
 	private SubstituteDatatablesDao substituteDatatablesDao;
+	
+	@Autowired
+	private StatisticService statisticService;
 
 	@AuditLogIntercepted(operation = "CPR-opslag", args = { "cpr" })
 	@GetMapping("/rest/substituteadmin/substitutes/new/cprlookup/{cpr}")
@@ -326,7 +331,7 @@ public class SubstituteAdminRestController {
 	public ResponseEntity<?> save(@RequestBody SubstituteWithPlaceDTO dto) {
 		try {
 			if (dto.getCpr() == null || dto.getCpr().length() != 10) {
-				throw new Exception();
+				throw new Exception("Ugyldig cpr værdi");
 			}
 			
 	    	String day = dto.getCpr().substring(0, 2);
@@ -549,6 +554,10 @@ public class SubstituteAdminRestController {
 		substitute = substituteService.save(substitute);
 		logInterceptor.substituteHolder.set(substitute);
 
+		for (Workplace workplace : substitute.getWorkplaces()) {
+			statisticService.save(workplace);
+		}
+
 		// handling ad groups
 		if (config.getSyncADGroups().isEnabled()) {
 			ADResponse groupStatus = substituteService.syncADGroups(substitute);
@@ -684,6 +693,7 @@ public class SubstituteAdminRestController {
 		// create workplaces
 		List<GlobalTitle> globalTitles = globalTitleService.getAll();
 		boolean requireO365Licence = false;
+		List<Workplace> newWorkplaces = new ArrayList<>();
 		for (OrgUnit orgUnit : orgUnits) {
 			Workplace workplace = new Workplace();
 			workplace.setStartDate(dto.getStart());
@@ -721,6 +731,8 @@ public class SubstituteAdminRestController {
 			if (workplace.isRequireO365License()) {
 				requireO365Licence = true;
 			}
+			
+			newWorkplaces.add(workplace);
 		}
 
 		ADResponse response = webSocketService.setExpire(substitute, config.getWebsockets().isCheckStatusWhenSetExpire());
@@ -759,8 +771,40 @@ public class SubstituteAdminRestController {
 			substitute.setLatestStopDate(dto.getStop());
 		}
 		
-		substituteService.save(substitute);
+		substitute = substituteService.save(substitute);
 		logInterceptor.substituteHolder.set(substitute);
+		
+		boolean reactivateUserNow = false;
+
+		for (Iterator<Workplace> iterator = newWorkplaces.iterator(); iterator.hasNext(); ) {
+			Workplace newWorkplace = iterator.next();
+			for (Workplace workplace : substitute.getWorkplaces()) {
+
+				// semi-sucky comparison (as we cannot compare on DB ID). So we COULD miss duplicates... but then we do not really care,
+				// that just means our statistic will not contain the duplicate, and not mess up the statistic, so a win actually :)
+				if (Objects.equals(newWorkplace.getOrgUnit().getUuid(), workplace.getOrgUnit().getUuid()) &&
+					Objects.equals(newWorkplace.getTitle(), workplace.getTitle()) &&
+					Objects.equals(newWorkplace.getStartDate(), workplace.getStartDate()) &&
+					Objects.equals(newWorkplace.getStopDate(), workplace.getStopDate())) {
+
+					if (newWorkplace.getStartDate().equals(LocalDate.now()) || newWorkplace.getStartDate().isBefore(LocalDate.now())) {
+						reactivateUserNow = true;
+					}
+					
+					statisticService.save(workplace);
+				}
+			}
+		}
+		
+		if (reactivateUserNow && substitute.isDisabledInAd()) {
+			if (webSocketService.enableADAccount(substitute.getUsername()).isSuccess()) {
+				substitute.setDisabledInAd(false);
+				substituteService.save(substitute);
+			}
+			else {
+				log.warn("Failed to enable AD account for substite that should be activated: " + substitute.getUsername());
+			}
+		}
 
 		// handling ad groups
 		if (config.getSyncADGroups().isEnabled()) {
@@ -810,6 +854,9 @@ public class SubstituteAdminRestController {
 		
 		substituteService.save(substitute);
 		logInterceptor.substituteHolder.set(substitute);
+		
+		// update existing statistic with the new stop-date
+		statisticService.save(workplace);
 
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
@@ -853,6 +900,9 @@ public class SubstituteAdminRestController {
 		substituteService.save(substitute);
 		logInterceptor.substituteHolder.set(substitute);
 
+		// update existing statistic with the new stop-date
+		statisticService.save(workplace);
+		
 		return new ResponseEntity<>(response == null || response.isSuccess(), HttpStatus.OK);
 	}
 
@@ -1130,6 +1180,10 @@ public class SubstituteAdminRestController {
 
 		substitute = substituteService.save(substitute);
 		logInterceptor.substituteHolder.set(substitute);
+		
+		for (Workplace workplace : substitute.getWorkplaces()) {
+			statisticService.save(workplace);
+		}
 
 		// handling ad groups
 		if (config.getSyncADGroups().isEnabled()) {

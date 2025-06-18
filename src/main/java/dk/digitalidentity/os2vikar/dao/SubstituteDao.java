@@ -12,4 +12,5 @@ public interface SubstituteDao extends JpaRepository<Substitute, Long>{
 	Substitute findByCpr(String cpr);
 	List<Substitute> findByLastUpdatedAfter(LocalDateTime tts);
 	List<Substitute> findByAuthorizationCodeCheckedFalse();
+	List<Substitute> findByDisabledInAdTrue();
 }

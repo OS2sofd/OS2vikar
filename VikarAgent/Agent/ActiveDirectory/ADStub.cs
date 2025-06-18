@@ -83,10 +83,6 @@ namespace OS2Vikar
                             {
                                 using (var entry = (DirectoryEntry)user.GetUnderlyingObject())
                                 {
-                                    // enable user
-                                    int flags = (int)entry.Properties["useraccountcontrol"].Value;
-                                    entry.Properties["useraccountcontrol"].Value = (flags & ~0x0002);
-
                                     DateTime ts = DateTime.Parse((tts + " 00:00")).AddDays(1);
                                     logger.Information("Setting expire on " + userId + " to " + ts.ToString("yyyy-MM-dd HH:mm"));
 
@@ -616,6 +612,39 @@ namespace OS2Vikar
             {
                 logger.Error(ex, "Failed to disable AD account " + userId);
                 result.Message = "Disable AD konto fejlede: " + ex.Message;
+            }
+
+            return result;
+        }
+
+        public ADStubResponse EnableAccount(string userId)
+        {
+            ADStubResponse result = new ADStubResponse();
+            result.Success = false;
+
+            try
+            {
+                using (PrincipalContext ctx = GetPrincipalContext())
+                {
+                    using (var user = UserPrincipal.FindByIdentity(ctx, IdentityType.SamAccountName, userId))
+                    {
+                        if (user == null)
+                        {
+                            result.Message = "Enable AD konto fejlede: Der findes ingen AD konto med bruger-id: " + userId;
+                        }
+                        else
+                        {
+                            user.Enabled = true;
+                            user.Save();
+                            result.Success = true;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Failed to enable AD account " + userId);
+                result.Message = "Enable AD konto fejlede: " + ex.Message;
             }
 
             return result;

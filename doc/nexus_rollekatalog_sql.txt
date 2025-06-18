@@ -1,0 +1,5 @@
+INSERT INTO it_systems (name, identifier, system_type, can_edit_through_api, readonly, api_managed_role_assignments)
+VALUES ('KMD Nexus Organisationsroller', 'nexusorgroles', 'SAML', 1, 0, 1);
+
+INSERT INTO it_systems (name, identifier, system_type, can_edit_through_api, readonly, api_managed_role_assignments)
+VALUES ('KMD Nexus FMK Trust', 'kmdnexusfmktrust', 'SAML', 1, 1, 0);

@@ -11,6 +11,7 @@ public class Commands {
 	public static final String DISABLE_ACCOUNT = "DISABLE_ACCOUNT";
 	public static final String EMPLOYEE_SIGNATURE = "EMPLOYEE_SIGNATURE";
 	public static final String AD_GROUPS_SYNC = "AD_GROUPS_SYNC";
+	public static final String ENABLE_ACCOUNT = "ENABLE_ACCOUNT";
 	public static final String UNLOCK_ACCOUNT = "UNLOCK_ACCOUNT";
 	public static final String SET_AUTHORIZATION_CODE = "SET_AUTHORIZATION_CODE";
 	

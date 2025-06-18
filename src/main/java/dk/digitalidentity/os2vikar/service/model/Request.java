@@ -37,6 +37,7 @@ public class Request {
 			case Commands.SET_EXPIRE:
 			case Commands.DELETE_ACCOUNT:
 			case Commands.DISABLE_ACCOUNT:
+			case Commands.ENABLE_ACCOUNT:
 			case Commands.EMPLOYEE_SIGNATURE:
 			case Commands.AD_GROUPS_SYNC:
 			case Commands.UNLOCK_ACCOUNT:
@@ -62,6 +63,7 @@ public class Request {
 			case Commands.UPDATE_LICENSE:
 			case Commands.DELETE_ACCOUNT:
 			case Commands.DISABLE_ACCOUNT:
+			case Commands.ENABLE_ACCOUNT:
 			case Commands.EMPLOYEE_SIGNATURE:
 			case Commands.AD_GROUPS_SYNC:
 			case Commands.UNLOCK_ACCOUNT:

@@ -2,14 +2,19 @@ package dk.digitalidentity.os2vikar.controller.mvc;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+
+import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.servlet.ModelAndView;
 
 import dk.digitalidentity.os2vikar.config.OS2VikarConfiguration;
 import dk.digitalidentity.os2vikar.config.RoleConstants;
@@ -18,13 +23,16 @@ import dk.digitalidentity.os2vikar.controller.mvc.dto.RoleDTO;
 import dk.digitalidentity.os2vikar.controller.mvc.dto.SubstituteWithPlaceDTO;
 import dk.digitalidentity.os2vikar.controller.mvc.dto.WorkplaceDTO;
 import dk.digitalidentity.os2vikar.dao.model.OrgUnit;
+import dk.digitalidentity.os2vikar.dao.model.Statistic;
 import dk.digitalidentity.os2vikar.dao.model.Substitute;
 import dk.digitalidentity.os2vikar.dao.model.Workplace;
 import dk.digitalidentity.os2vikar.security.RequireSubstituteAdminAccess;
 import dk.digitalidentity.os2vikar.security.SecurityUtil;
 import dk.digitalidentity.os2vikar.service.ADAccountPoolService;
 import dk.digitalidentity.os2vikar.service.OrgUnitService;
+import dk.digitalidentity.os2vikar.service.StatisticService;
 import dk.digitalidentity.os2vikar.service.SubstituteService;
+import dk.digitalidentity.os2vikar.service.xls.StatisticXlsView;
 
 @Controller
 @RequireSubstituteAdminAccess
@@ -41,6 +49,9 @@ public class SubstituteAdminController {
 
 	@Autowired
 	private OS2VikarConfiguration config;
+	
+	@Autowired
+	private StatisticService statisticService;
 
 	@GetMapping("/substituteadmin/substitutes")
 	public String substituteadminList(Model model) {
@@ -188,6 +199,20 @@ public class SubstituteAdminController {
 		
 		return "substitute_admin/users";
 	}
+	
+	@GetMapping("/substituteadmin/download/statistic")
+	public ModelAndView downloadOrgUnits(HttpServletResponse response) {
+		List<Statistic> statistics = statisticService.getAll();
+
+		Map<String, Object> model = new HashMap<>();
+		model.put("statistics", statistics);
+
+		response.setContentType("application/ms-excel");
+		response.setHeader("Content-Disposition", "attachment; filename=\"statistic.xlsx\"");
+
+		return new ModelAndView(new StatisticXlsView(), model);
+	}
+
 
 	private String findITSystemNames(OrgUnit orgUnit, List<ConstraintITSystem> configConstraintITSystems) {
 		List<String> names = new ArrayList<>();

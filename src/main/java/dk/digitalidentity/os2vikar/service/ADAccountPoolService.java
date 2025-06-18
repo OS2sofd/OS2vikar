@@ -86,6 +86,12 @@ public class ADAccountPoolService {
 							if (StringUtils.hasLength(response.getMessage())) {
 								log.error("Partial create: " + response.getMessage());
 							}
+							
+							// initial state should be disabled
+							ADResponse lockResponse = webSocketService.disableADAccount(username);
+							if (!lockResponse.isSuccess()) {
+								log.warn("Failed to set initial state to disabled on: " + username);
+							}
 						}
 						else {
 							if (response.getStatus() == ADStatus.TIMEOUT) {
@@ -112,6 +118,12 @@ public class ADAccountPoolService {
 						account.setWithO365License(false);
 						newAccounts.add(account);
 						withoutLicenseCount++;
+						
+						// initial state should be disabled
+						ADResponse lockResponse = webSocketService.disableADAccount(username);
+						if (!lockResponse.isSuccess()) {
+							log.warn("Failed to set initial state to disabled on: " + username);
+						}
 					}
 					else {
 						if (response.getStatus() == ADStatus.TIMEOUT) {

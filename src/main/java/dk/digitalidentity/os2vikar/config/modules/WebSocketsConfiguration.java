@@ -15,4 +15,7 @@ public class WebSocketsConfiguration {
 
 	// if this is enabled the setting in the Vikar agent should also be enabled (checkStatusWhenSetExpire)
 	private boolean checkStatusWhenSetExpire = false;
+	
+	// special setting to encode cpr values before sending to AD
+	private boolean encodedCpr = false;
 }

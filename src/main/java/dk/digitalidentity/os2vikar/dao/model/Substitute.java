@@ -75,7 +75,6 @@ public class Substitute {
 	@Column
 	private boolean usernameFromSofd;
 
-	// TODO someone should figure out why substitute save fails in SubstituteAdminRestController.addWorkplaces when it's FetchType.LAZY
 	@OneToMany(mappedBy = "substitute", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
 	private List<Workplace> workplaces;
 

@@ -150,6 +150,35 @@ public class SocketHandler extends TextWebSocketHandler {
 	}
 
 	@Async
+	public Future<ADResponse> enableAccount(String userId) throws InterruptedException {
+		return internalEnableAccount(userId, true);
+	}
+	
+	@Async
+	public Future<ADResponse> enableAccountWithoutRetry(String userId) throws InterruptedException {
+		return internalEnableAccount(userId, false);
+	}
+	
+	private Future<ADResponse> internalEnableAccount(String userId, boolean retry) throws InterruptedException {
+		Request request = new Request();
+		request.setCommand(Commands.ENABLE_ACCOUNT);
+		request.setTarget(userId);
+		request.setPayload("");
+
+		ADResponse response = sendAndGet(request, "enableAccount");
+
+		// in case of NO_CONNECTION, we do not attempt to hide that information, so the caller still needs
+		// to deal with that issue, even though we retry in 5 minutes to perform the same action. This also
+		// means that this approach to retrying should only be done on idempotent operations, where a retry
+		// would not have any ill effect
+		if (retry && response.getStatus().equals(ADStatus.NO_CONNECTION)) {
+			retryRequest(request);
+		}
+
+		return new AsyncResult<>(response);
+	}
+	
+	@Async
 	public Future<ADResponse> disableAccount(String userId) throws InterruptedException {
 		return internalDisableAccount(userId, true);
 	}
@@ -429,9 +458,11 @@ public class SocketHandler extends TextWebSocketHandler {
 			case Commands.SET_EXPIRE:
 			case Commands.DELETE_ACCOUNT:
 			case Commands.DISABLE_ACCOUNT:
+			case Commands.ENABLE_ACCOUNT:
 			case Commands.EMPLOYEE_SIGNATURE:
 			case Commands.AD_GROUPS_SYNC:
 			case Commands.UNLOCK_ACCOUNT:
+			case Commands.SET_AUTHORIZATION_CODE:
 				handleResponse(message);
 				break;
 			default:
@@ -641,6 +672,9 @@ public class SocketHandler extends TextWebSocketHandler {
 			case Commands.DISABLE_ACCOUNT:
 				log.info("Disable account " + message.getTarget() + ": " + message.getStatus());
 				break;
+			case Commands.ENABLE_ACCOUNT:
+				log.info("Enable account " + message.getTarget() + ": " + message.getStatus());
+				break;
 			case Commands.EMPLOYEE_SIGNATURE:
 				log.info("Employee signature " + message.getTarget() + ": " + message.getStatus());
 				break;
@@ -649,6 +683,9 @@ public class SocketHandler extends TextWebSocketHandler {
 				break;
 			case Commands.UNLOCK_ACCOUNT:
 				log.info("Unlock account " + message.getTarget() + ": " + message.getStatus());
+				break;
+			case Commands.SET_AUTHORIZATION_CODE:
+				log.info("Set Authorization Code " + message.getTarget() + ": " + message.getStatus());
 				break;
 			default:
 				log.error("Unknown response command: " + message.getCommand());
